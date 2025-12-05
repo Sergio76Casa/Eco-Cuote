@@ -3,9 +3,8 @@ import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
 import { SavedQuote, Product } from '../types';
 import { 
-  LogOut, UploadCloud, RefreshCw, FileText, 
-  History, Mail, Search, AlertCircle, CheckCircle, 
-  Plus, Package, Trash2, Save, X, Database
+  LogOut, Package, History, AlertCircle, CheckCircle, 
+  Plus, Trash2, X, Database, FileUp, FileText, Search, Sparkles, Loader2
 } from 'lucide-react';
 
 interface AdminProps {
@@ -15,6 +14,7 @@ interface AdminProps {
 const Admin: React.FC<AdminProps> = ({ onLogout }) => {
   const [activeTab, setActiveTab] = useState<'products' | 'quotes'>('products');
   const [loading, setLoading] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
   const [message, setMessage] = useState<{ text: string, type: 'success' | 'error' } | null>(null);
   
   // History State
@@ -26,13 +26,19 @@ const Admin: React.FC<AdminProps> = ({ onLogout }) => {
   const [showAddProduct, setShowAddProduct] = useState(false);
   
   // New Product Form State
-  const [newProd, setNewProd] = useState({
+  const [newProd, setNewProd] = useState<Partial<Product> & { priceInput: string; featuresInput: string }>({
       brand: '',
       model: '',
       type: 'Aire Acondicionado',
-      price: '',
-      features: ''
+      priceInput: '',
+      featuresInput: '',
+      features: [],
+      pricing: [],
+      installationKits: [],
+      extras: [],
+      financing: []
   });
+  const [pdfFile, setPdfFile] = useState<File | null>(null);
 
   useEffect(() => {
     if (activeTab === 'quotes') fetchHistory();
@@ -64,7 +70,6 @@ const Admin: React.FC<AdminProps> = ({ onLogout }) => {
   };
 
   const handleSeedDatabase = async () => {
-      if(!confirm("¿Estás seguro? Esto cargará los productos de demostración en la base de datos Supabase. Si ya existen, se duplicarán.")) return;
       setLoading(true);
       try {
           const msg = await api.seedDatabase();
@@ -77,35 +82,83 @@ const Admin: React.FC<AdminProps> = ({ onLogout }) => {
       }
   };
 
+  const handleAnalyzePdf = async () => {
+      if (!pdfFile) {
+          alert("Primero selecciona un PDF.");
+          return;
+      }
+      setAiLoading(true);
+      try {
+          const extractedData = await api.extractProductFromPdf(pdfFile);
+          
+          if (extractedData) {
+              // Populate form with AI data
+              setNewProd({
+                  ...newProd,
+                  brand: extractedData.brand || '',
+                  model: extractedData.model || '',
+                  type: extractedData.type || 'Aire Acondicionado',
+                  // Map complex objects to form state if needed, or keep for payload
+                  features: extractedData.features || [],
+                  pricing: extractedData.pricing || [],
+                  installationKits: extractedData.installationKits || [],
+                  extras: extractedData.extras || [],
+                  financing: extractedData.financing || [],
+                  // For simple inputs display
+                  priceInput: extractedData.pricing && extractedData.pricing.length > 0 ? String(extractedData.pricing[0].price) : '',
+                  featuresInput: extractedData.features && extractedData.features.length > 0 ? extractedData.features.map(f => f.title).join(', ') : ''
+              });
+              setMessage({ text: '¡Datos extraídos con IA! Revisa antes de guardar.', type: 'success' });
+          }
+      } catch (e: any) {
+          setMessage({ text: 'Error IA: ' + e.message, type: 'error' });
+      } finally {
+          setAiLoading(false);
+      }
+  };
+
   const handleAddProduct = async () => {
-      if(!newProd.brand || !newProd.model || !newProd.price) {
+      if(!newProd.brand || !newProd.model || !newProd.priceInput) {
           alert("Rellena marca, modelo y precio.");
           return;
       }
       setLoading(true);
       try {
-          const priceNum = parseFloat(newProd.price);
+          const priceNum = parseFloat(newProd.priceInput);
           
+          let pdfUrl = '';
+          if (pdfFile) {
+              pdfUrl = await api.uploadProductPdf(pdfFile);
+          }
+
           // Construct Payload based on the Product interface
+          // If we have detailed arrays from AI, use them, otherwise build default
+          const pricing = newProd.pricing && newProd.pricing.length > 0 
+            ? newProd.pricing 
+            : [{ id: 'def', name: 'Equipo Base', price: priceNum }];
+
+          const features = newProd.features && newProd.features.length > 0
+            ? newProd.features
+            : [{ title: 'Características', description: newProd.featuresInput }];
+
           const payload: Partial<Product> = {
               brand: newProd.brand,
               model: newProd.model,
               type: newProd.type,
-              features: [
-                  { title: 'Característica 1', description: newProd.features || 'Descripción estándar' },
-                  { title: 'Eficiencia', description: 'Alta eficiencia energética' }
-              ],
-              pricing: [{ id: 'def', name: 'Equipo Base', price: priceNum }],
-              installationKits: [{ id: 'k1', name: 'Instalación Básica', price: 250 }],
-              extras: [{ id: 'e1', name: 'Soportes', price: 50 }],
-              financing: [{ label: '12 Meses', months: 12, commission: 0 }]
+              features: features,
+              pricing: pricing,
+              installationKits: newProd.installationKits && newProd.installationKits.length > 0 ? newProd.installationKits : [{ id: 'k1', name: 'Instalación Básica', price: 250 }],
+              extras: newProd.extras || [],
+              financing: newProd.financing || [],
+              pdfUrl: pdfUrl
           };
 
           await api.addProduct(payload);
           setMessage({ text: 'Producto creado correctamente en BD.', type: 'success' });
           setShowAddProduct(false);
-          setNewProd({ brand: '', model: '', type: 'Aire Acondicionado', price: '', features: '' });
-          fetchProducts(); // Refresh list
+          setNewProd({ brand: '', model: '', type: 'Aire Acondicionado', priceInput: '', featuresInput: '', features: [], pricing: [], installationKits: [], extras: [], financing: [] });
+          setPdfFile(null);
+          fetchProducts(); 
       } catch (e: any) {
           setMessage({ text: 'Error creando producto: ' + e.message, type: 'error' });
       } finally {
@@ -175,7 +228,6 @@ const Admin: React.FC<AdminProps> = ({ onLogout }) => {
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <h3 className="font-bold text-xl text-slate-800">Productos en Base de Datos</h3>
                 <div className="flex gap-2">
-                    {/* Botón siempre visible ahora */}
                     <button 
                         onClick={handleSeedDatabase}
                         className="bg-slate-100 text-slate-600 px-4 py-2 rounded-xl font-bold flex items-center gap-2 hover:bg-slate-200 transition-colors border border-slate-200"
@@ -201,6 +253,7 @@ const Admin: React.FC<AdminProps> = ({ onLogout }) => {
                             <th className="p-4">Modelo</th>
                             <th className="p-4">Tipo</th>
                             <th className="p-4">Precio Base</th>
+                            <th className="p-4 text-center">PDF</th>
                             <th className="p-4 text-right">Acciones</th>
                         </tr>
                     </thead>
@@ -212,6 +265,11 @@ const Admin: React.FC<AdminProps> = ({ onLogout }) => {
                                 <td className="p-4"><span className="bg-slate-100 text-slate-600 px-2 py-1 rounded text-xs font-bold">{p.type}</span></td>
                                 <td className="p-4 font-mono text-brand-600 font-bold">
                                     {p.pricing && p.pricing.length > 0 ? p.pricing[0].price : 0} €
+                                </td>
+                                <td className="p-4 text-center">
+                                    {p.pdfUrl ? (
+                                        <a href={p.pdfUrl} target="_blank" rel="noreferrer" className="text-brand-600 hover:text-brand-800"><FileText size={18}/></a>
+                                    ) : <span className="text-slate-300">-</span>}
                                 </td>
                                 <td className="p-4 text-right">
                                     <button 
@@ -226,7 +284,7 @@ const Admin: React.FC<AdminProps> = ({ onLogout }) => {
                         ))}
                          {dbProducts.length === 0 && (
                             <tr>
-                                <td colSpan={5} className="p-8 text-center text-slate-400 bg-slate-50">
+                                <td colSpan={6} className="p-8 text-center text-slate-400 bg-slate-50">
                                     <div className="flex flex-col items-center gap-2">
                                         <Database className="text-slate-300" size={32}/>
                                         <p>La base de datos está vacía.</p>
@@ -316,12 +374,55 @@ const Admin: React.FC<AdminProps> = ({ onLogout }) => {
         {/* Add Product Modal */}
         {showAddProduct && (
             <div className="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in">
-                <div className="bg-white p-8 rounded-3xl w-full max-w-md shadow-2xl animate-in zoom-in-95">
+                <div className="bg-white p-8 rounded-3xl w-full max-w-md shadow-2xl animate-in zoom-in-95 max-h-[90vh] overflow-y-auto">
                     <div className="flex justify-between items-center mb-6">
                         <h3 className="font-bold text-xl">Nuevo Producto</h3>
                         <button onClick={() => setShowAddProduct(false)}><X className="text-slate-400 hover:text-slate-600"/></button>
                     </div>
                     <div className="space-y-4">
+                        
+                        {/* PDF UPLOAD SECTION */}
+                        <div className="p-4 bg-brand-50 rounded-xl border border-brand-100">
+                            <label className="block text-xs font-bold text-brand-800 mb-2 flex items-center gap-2">
+                                <Sparkles size={14}/> Importar desde PDF (IA)
+                            </label>
+                            
+                            {!pdfFile ? (
+                                <label className="w-full border border-dashed border-brand-300 p-4 rounded-lg bg-white hover:bg-brand-50 cursor-pointer flex flex-col items-center justify-center transition-colors group">
+                                    <FileUp size={24} className="text-brand-400 mb-2 group-hover:scale-110 transition-transform"/>
+                                    <span className="text-xs text-brand-600 font-medium">Click para seleccionar PDF</span>
+                                    <input 
+                                        type="file" 
+                                        accept=".pdf" 
+                                        className="hidden" 
+                                        onChange={e => e.target.files && setPdfFile(e.target.files[0])}
+                                    />
+                                </label>
+                            ) : (
+                                <div className="space-y-2">
+                                    <div className="flex items-center justify-between p-3 bg-white border border-brand-200 rounded-lg">
+                                        <div className="flex items-center gap-2 overflow-hidden">
+                                            <FileText size={20} className="text-brand-600 shrink-0"/>
+                                            <span className="text-sm text-brand-900 truncate max-w-[180px]">{pdfFile.name}</span>
+                                        </div>
+                                        <button onClick={() => setPdfFile(null)} className="text-red-400 hover:text-red-600 p-1 hover:bg-red-50 rounded">
+                                            <Trash2 size={18} />
+                                        </button>
+                                    </div>
+                                    <button 
+                                        onClick={handleAnalyzePdf}
+                                        disabled={aiLoading}
+                                        className="w-full bg-brand-600 text-white text-sm font-bold py-2 rounded-lg flex items-center justify-center gap-2 hover:bg-brand-700 transition-colors"
+                                    >
+                                        {aiLoading ? <Loader2 className="animate-spin" size={16}/> : <Sparkles size={16}/>}
+                                        {aiLoading ? 'Analizando...' : 'Extraer Datos con IA'}
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="border-t border-slate-100 my-4"></div>
+
                         <div>
                             <label className="block text-xs font-bold text-slate-500 mb-1">Marca</label>
                             <input 
@@ -358,8 +459,8 @@ const Admin: React.FC<AdminProps> = ({ onLogout }) => {
                                 type="number"
                                 className="w-full border p-2 rounded-lg bg-slate-50 outline-none focus:ring-2 focus:ring-brand-500" 
                                 placeholder="0"
-                                value={newProd.price}
-                                onChange={e => setNewProd({...newProd, price: e.target.value})}
+                                value={newProd.priceInput}
+                                onChange={e => setNewProd({...newProd, priceInput: e.target.value})}
                             />
                         </div>
                         <div>
@@ -367,15 +468,15 @@ const Admin: React.FC<AdminProps> = ({ onLogout }) => {
                             <input 
                                 className="w-full border p-2 rounded-lg bg-slate-50 outline-none focus:ring-2 focus:ring-brand-500" 
                                 placeholder="Ej: Wifi integrado, Silencioso..."
-                                value={newProd.features}
-                                onChange={e => setNewProd({...newProd, features: e.target.value})}
+                                value={newProd.featuresInput}
+                                onChange={e => setNewProd({...newProd, featuresInput: e.target.value})}
                             />
                         </div>
 
                         <button 
                             onClick={handleAddProduct}
-                            disabled={loading}
-                            className="w-full bg-brand-600 hover:bg-brand-500 text-white font-bold py-3 rounded-xl mt-4 shadow-lg flex justify-center gap-2 disabled:opacity-70"
+                            disabled={loading || aiLoading}
+                            className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-3 rounded-xl mt-4 shadow-lg flex justify-center gap-2 disabled:opacity-70"
                         >
                             {loading ? 'Guardando...' : 'Crear Producto'}
                         </button>

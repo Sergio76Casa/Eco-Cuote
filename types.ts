@@ -26,7 +26,8 @@ export interface Extra {
 export interface FinancingOption {
   label: string;
   months: number;
-  commission: number;
+  commission?: number; // Legacy percentage based
+  coefficient?: number; // PDF based (e.g., 0.087)
 }
 
 export interface Product {
@@ -40,6 +41,7 @@ export interface Product {
   extras: Extra[];
   financing: FinancingOption[];
   rawContext?: string;
+  pdfUrl?: string; // Link to the original uploaded PDF
 }
 
 export interface ClientData {

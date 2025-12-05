@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { Product, ClientData } from '../types';
 import { api } from '../services/api';
@@ -70,8 +71,19 @@ const Calculator: React.FC<CalculatorProps> = ({ product, onBack }) => {
     let finText = "Pago al Contado";
     if (financeIdx >= 0 && financeData[financeIdx]) {
       const f = financeData[financeIdx];
-      const t = total * (1 + f.commission / 100);
-      finText = `${f.label}\nCuota: ${formatCurrency(t / f.months)}/mes\nTotal Financiado: ${formatCurrency(t)} (${f.commission}%)`;
+      let monthlyPayment = 0;
+      let totalFinanced = 0;
+
+      // Logic for Coefficients (From PDFs) vs Commission %
+      if (f.coefficient) {
+          monthlyPayment = total * f.coefficient;
+          totalFinanced = monthlyPayment * f.months;
+          finText = `${f.label}\nCuota: ${formatCurrency(monthlyPayment)}/mes\nTotal a Pagar: ${formatCurrency(totalFinanced)}`;
+      } else if (f.commission !== undefined) {
+          totalFinanced = total * (1 + f.commission / 100);
+          monthlyPayment = totalFinanced / f.months;
+          finText = `${f.label}\nCuota: ${formatCurrency(monthlyPayment)}/mes\nTotal a Pagar: ${formatCurrency(totalFinanced)} (${f.commission}%)`;
+      }
     }
 
     const extrasArr = Object.entries(extrasQty).map(([id, qty]) => {
@@ -159,9 +171,9 @@ const Calculator: React.FC<CalculatorProps> = ({ product, onBack }) => {
             <section className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
               <h3 className="font-bold text-lg mb-6 flex items-center gap-3">
                 <span className="bg-brand-100 text-brand-700 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold">3</span> 
-                Extras
+                Extras de Instalación
               </h3>
-              <div className="grid md:grid-cols-2 gap-3">
+              <div className="grid md:grid-cols-2 gap-3 max-h-[400px] overflow-y-auto custom-scrollbar pr-2">
                 {extrasData.map(e => {
                   const qty = extrasQty[e.id] || 0;
                   return (
@@ -194,18 +206,28 @@ const Calculator: React.FC<CalculatorProps> = ({ product, onBack }) => {
                 <span className="font-bold flex items-center gap-2 text-slate-800"><CreditCard size={18}/> Pago al Contado</span>
               </label>
               {financeData.map((f, i) => {
-                const totalFin = total * (1 + f.commission / 100);
+                let monthly = 0;
+                let totalFin = 0;
+                
+                if (f.coefficient) {
+                    monthly = total * f.coefficient;
+                    totalFin = monthly * f.months;
+                } else if (f.commission !== undefined) {
+                    totalFin = total * (1 + f.commission / 100);
+                    monthly = totalFin / f.months;
+                }
+
                 return (
                   <label key={i} className={`flex justify-between items-center p-4 border-2 rounded-xl cursor-pointer transition-all ${financeIdx === i ? 'border-brand-500 bg-brand-50' : 'border-slate-100 hover:border-slate-200'}`}>
                     <div className="flex items-center gap-3">
                       <input type="radio" className="accent-brand-600 w-5 h-5" checked={financeIdx === i} onChange={() => setFinanceIdx(i)} />
                       <div>
                         <div className="font-bold text-slate-800">{f.label}</div>
-                        <div className="text-xs text-slate-500">Total financiado: {formatCurrency(totalFin)}</div>
+                        <div className="text-xs text-slate-500">Total a pagar: {formatCurrency(totalFin)}</div>
                       </div>
                     </div>
                     <div className="text-right">
-                        <div className="text-brand-700 font-bold text-lg leading-none">{formatCurrency(totalFin / f.months)}</div>
+                        <div className="text-brand-700 font-bold text-lg leading-none">{formatCurrency(monthly)}</div>
                         <span className="text-xs font-medium text-slate-400">/mes</span>
                     </div>
                   </label>
