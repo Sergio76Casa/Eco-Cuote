@@ -5,7 +5,7 @@ import { Product, ContactData } from './types';
 import ProductCard from './components/ProductCard';
 import Calculator from './components/Calculator';
 import Admin from './components/Admin';
-import { Settings, Lock, Mail, Phone, MapPin, Facebook, Instagram, Twitter, X, Send, Loader2, ArrowDown, ArrowRight, SlidersHorizontal, ShieldCheck, Wrench, FileText, Cookie, Menu, Scale } from 'lucide-react';
+import { Settings, Lock, Mail, Phone, MapPin, Facebook, Instagram, Twitter, X, Send, Loader2, ArrowDown, ArrowRight, SlidersHorizontal, ShieldCheck, Wrench, FileText, Cookie, Menu, Scale, Hammer, ClipboardCheck } from 'lucide-react';
 
 // Content for the informational modal (Services & Legal)
 const INFO_CONTENT: Record<string, { title: string; image: string; text: string }> = {
@@ -69,7 +69,8 @@ const App: React.FC = () => {
   // Contact Modal
   const [showContact, setShowContact] = useState(false);
   const [contactForm, setContactForm] = useState<ContactData>({ nombre: '', email: '', mensaje: '' });
-  const [contactStatus, setContactStatus] = useState<'idle'|'sending'|'success'>('idle');
+  const [contactErrors, setContactErrors] = useState<Partial<ContactData>>({});
+  const [contactStatus, setContactStatus] = useState<'idle'|'sending'|'success'|'error'>('idle');
 
   // Info Modal (Services & Legal)
   const [infoModal, setInfoModal] = useState<{ title: string; image: string; text: string } | null>(null);
@@ -145,8 +146,35 @@ const App: React.FC = () => {
     }
   };
 
+  const validateContactForm = () => {
+    const errors: Partial<ContactData> = {};
+    let isValid = true;
+
+    if (!contactForm.nombre.trim()) {
+        errors.nombre = 'El nombre es obligatorio';
+        isValid = false;
+    }
+
+    if (!contactForm.email.trim()) {
+        errors.email = 'El email es obligatorio';
+        isValid = false;
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactForm.email)) {
+        errors.email = 'Introduce un email válido';
+        isValid = false;
+    }
+
+    if (!contactForm.mensaje.trim()) {
+        errors.mensaje = 'Por favor, escribe tu consulta';
+        isValid = false;
+    }
+
+    setContactErrors(errors);
+    return isValid;
+  };
+
   const handleContactSubmit = async () => {
-    if(!contactForm.nombre || !contactForm.email) return alert("Rellena nombre y email");
+    if (!validateContactForm()) return;
+
     setContactStatus('sending');
     try {
         await api.sendContact(contactForm);
@@ -155,10 +183,11 @@ const App: React.FC = () => {
             setShowContact(false);
             setContactStatus('idle');
             setContactForm({ nombre: '', email: '', mensaje: '' });
-        }, 2000);
+            setContactErrors({});
+        }, 2500);
     } catch(e) {
-        alert("Error al enviar mensaje");
-        setContactStatus('idle');
+        setContactStatus('error');
+        alert("Error al enviar mensaje, por favor inténtalo de nuevo.");
     }
   };
 
@@ -473,9 +502,9 @@ const App: React.FC = () => {
                 <div>
                     <h4 className="text-white font-bold text-lg mb-6">Servicios</h4>
                     <ul className="space-y-3">
-                        <li><button onClick={() => openInfo('instalacion')} className="hover:text-brand-400 transition-colors flex items-center gap-2"><ArrowRight size={14}/> Instalación</button></li>
-                        <li><button onClick={() => openInfo('mantenimiento')} className="hover:text-brand-400 transition-colors flex items-center gap-2"><ArrowRight size={14}/> Mantenimiento</button></li>
-                        <li><button onClick={() => openInfo('reparacion')} className="hover:text-brand-400 transition-colors flex items-center gap-2"><ArrowRight size={14}/> Reparación</button></li>
+                        <li><button onClick={() => openInfo('instalacion')} className="hover:text-brand-400 transition-colors flex items-center gap-2"><Hammer size={14}/> Instalación</button></li>
+                        <li><button onClick={() => openInfo('mantenimiento')} className="hover:text-brand-400 transition-colors flex items-center gap-2"><ClipboardCheck size={14}/> Mantenimiento</button></li>
+                        <li><button onClick={() => openInfo('reparacion')} className="hover:text-brand-400 transition-colors flex items-center gap-2"><Wrench size={14}/> Reparación</button></li>
                         <li><button onClick={() => openInfo('garantias')} className="hover:text-brand-400 transition-colors flex items-center gap-2"><ShieldCheck size={14}/> Garantías</button></li>
                     </ul>
                 </div>
@@ -553,12 +582,12 @@ const App: React.FC = () => {
              <div className="bg-white p-8 rounded-3xl w-full max-w-md shadow-2xl animate-in zoom-in-95">
                 <div className="flex justify-between items-center mb-6">
                     <h3 className="font-bold text-2xl">Contactar</h3>
-                    <button onClick={() => setShowContact(false)}><X className="text-slate-400 hover:text-slate-600"/></button>
+                    <button onClick={() => { setShowContact(false); setContactErrors({}); }}><X className="text-slate-400 hover:text-slate-600"/></button>
                 </div>
 
                 {contactStatus === 'success' ? (
                     <div className="text-center py-8">
-                        <div className="bg-green-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-green-600">
+                        <div className="bg-green-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-green-600 animate-in zoom-in spin-in-90 duration-300">
                             <Send size={32}/>
                         </div>
                         <h4 className="text-xl font-bold text-green-700 mb-2">¡Mensaje Enviado!</h4>
@@ -569,35 +598,38 @@ const App: React.FC = () => {
                         <div>
                             <label className="block text-sm font-bold text-slate-700 mb-1">Nombre</label>
                             <input 
-                                className="w-full border border-slate-200 p-3 rounded-xl bg-slate-50 focus:bg-white focus:ring-2 focus:ring-brand-500 outline-none" 
+                                className={`w-full border p-3 rounded-xl bg-slate-50 focus:bg-white focus:ring-2 outline-none transition-colors ${contactErrors.nombre ? 'border-red-300 focus:ring-red-200' : 'border-slate-200 focus:ring-brand-500'}`}
                                 placeholder="Tu nombre"
                                 value={contactForm.nombre}
-                                onChange={e => setContactForm({...contactForm, nombre: e.target.value})}
+                                onChange={e => { setContactForm({...contactForm, nombre: e.target.value}); if(contactErrors.nombre) setContactErrors({...contactErrors, nombre: undefined}); }}
                             />
+                            {contactErrors.nombre && <p className="text-red-500 text-xs mt-1 font-medium">{contactErrors.nombre}</p>}
                         </div>
                         <div>
                             <label className="block text-sm font-bold text-slate-700 mb-1">Email</label>
                             <input 
-                                className="w-full border border-slate-200 p-3 rounded-xl bg-slate-50 focus:bg-white focus:ring-2 focus:ring-brand-500 outline-none" 
+                                className={`w-full border p-3 rounded-xl bg-slate-50 focus:bg-white focus:ring-2 outline-none transition-colors ${contactErrors.email ? 'border-red-300 focus:ring-red-200' : 'border-slate-200 focus:ring-brand-500'}`}
                                 placeholder="tu@email.com"
                                 type="email"
                                 value={contactForm.email}
-                                onChange={e => setContactForm({...contactForm, email: e.target.value})}
+                                onChange={e => { setContactForm({...contactForm, email: e.target.value}); if(contactErrors.email) setContactErrors({...contactErrors, email: undefined}); }}
                             />
+                            {contactErrors.email && <p className="text-red-500 text-xs mt-1 font-medium">{contactErrors.email}</p>}
                         </div>
                         <div>
                             <label className="block text-sm font-bold text-slate-700 mb-1">Consulta</label>
                             <textarea 
-                                className="w-full border border-slate-200 p-3 rounded-xl bg-slate-50 focus:bg-white focus:ring-2 focus:ring-brand-500 outline-none h-32 resize-none" 
+                                className={`w-full border p-3 rounded-xl bg-slate-50 focus:bg-white focus:ring-2 outline-none h-32 resize-none transition-colors ${contactErrors.mensaje ? 'border-red-300 focus:ring-red-200' : 'border-slate-200 focus:ring-brand-500'}`}
                                 placeholder="¿En qué podemos ayudarte?"
                                 value={contactForm.mensaje}
-                                onChange={e => setContactForm({...contactForm, mensaje: e.target.value})}
+                                onChange={e => { setContactForm({...contactForm, mensaje: e.target.value}); if(contactErrors.mensaje) setContactErrors({...contactErrors, mensaje: undefined}); }}
                             />
+                            {contactErrors.mensaje && <p className="text-red-500 text-xs mt-1 font-medium">{contactErrors.mensaje}</p>}
                         </div>
                         <button 
                             onClick={handleContactSubmit}
                             disabled={contactStatus === 'sending'}
-                            className="w-full bg-brand-600 hover:bg-brand-500 text-white font-bold py-3 rounded-xl transition-colors mt-2 flex items-center justify-center gap-2"
+                            className="w-full bg-brand-600 hover:bg-brand-500 text-white font-bold py-3 rounded-xl transition-colors mt-2 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
                         >
                             {contactStatus === 'sending' ? <Loader2 className="animate-spin"/> : <Send size={18}/>}
                             {contactStatus === 'sending' ? 'Enviando...' : 'Enviar Mensaje'}

@@ -1,9 +1,11 @@
+
 import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
-import { SavedQuote } from '../types';
+import { SavedQuote, Product } from '../types';
 import { 
   LogOut, UploadCloud, RefreshCw, FileText, 
-  History, Mail, Search, AlertCircle, CheckCircle 
+  History, Mail, Search, AlertCircle, CheckCircle, 
+  Plus, Package, Trash2, Save, X, Database
 } from 'lucide-react';
 
 interface AdminProps {
@@ -19,8 +21,22 @@ const Admin: React.FC<AdminProps> = ({ onLogout }) => {
   const [quotes, setQuotes] = useState<SavedQuote[]>([]);
   const [filterText, setFilterText] = useState('');
 
+  // Products State
+  const [dbProducts, setDbProducts] = useState<Product[]>([]);
+  const [showAddProduct, setShowAddProduct] = useState(false);
+  
+  // New Product Form State
+  const [newProd, setNewProd] = useState({
+      brand: '',
+      model: '',
+      type: 'Aire Acondicionado',
+      price: '',
+      features: ''
+  });
+
   useEffect(() => {
     if (activeTab === 'quotes') fetchHistory();
+    if (activeTab === 'products') fetchProducts();
   }, [activeTab]);
 
   const fetchHistory = async () => {
@@ -35,47 +51,80 @@ const Admin: React.FC<AdminProps> = ({ onLogout }) => {
     }
   };
 
-  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setLoading(true);
-    setMessage(null);
-    try {
-      const resultMsg = await api.uploadPdf(file);
-      setMessage({ text: resultMsg, type: 'success' });
-    } catch (error: any) {
-      setMessage({ text: 'Error subiendo PDF: ' + error.message, type: 'error' });
-    } finally {
-      setLoading(false);
-    }
+  const fetchProducts = async () => {
+      setLoading(true);
+      try {
+          const data = await api.getCatalog();
+          setDbProducts(data);
+      } catch (error) {
+          setMessage({ text: 'Error al cargar productos.', type: 'error' });
+      } finally {
+          setLoading(false);
+      }
   };
 
-  const handleScan = async () => {
-    setLoading(true);
-    setMessage(null);
-    try {
-      const resultMsg = await api.scanDrive();
-      setMessage({ text: resultMsg, type: 'success' });
-    } catch (error: any) {
-      setMessage({ text: 'Error escaneando Drive: ' + error.message, type: 'error' });
-    } finally {
-      setLoading(false);
-    }
+  const handleSeedDatabase = async () => {
+      if(!confirm("¿Estás seguro? Esto cargará los productos de demostración en la base de datos Supabase. Si ya existen, se duplicarán.")) return;
+      setLoading(true);
+      try {
+          const msg = await api.seedDatabase();
+          setMessage({ text: msg, type: 'success' });
+          fetchProducts();
+      } catch (e: any) {
+          setMessage({ text: 'Error al cargar datos: ' + e.message, type: 'error' });
+      } finally {
+          setLoading(false);
+      }
   };
 
-  const handleResend = async (id: string) => {
-    if(!confirm("¿Reenviar el email al cliente?")) return;
-    setLoading(true);
-    try {
-      const msg = await api.resendEmail(id);
-      setMessage({ text: msg, type: msg.includes('Error') ? 'error' : 'success' });
-      fetchHistory(); // refresh status
-    } catch (error: any) {
-        setMessage({ text: error.message, type: 'error' });
-    } finally {
-        setLoading(false);
-    }
+  const handleAddProduct = async () => {
+      if(!newProd.brand || !newProd.model || !newProd.price) {
+          alert("Rellena marca, modelo y precio.");
+          return;
+      }
+      setLoading(true);
+      try {
+          const priceNum = parseFloat(newProd.price);
+          
+          // Construct Payload based on the Product interface
+          const payload: Partial<Product> = {
+              brand: newProd.brand,
+              model: newProd.model,
+              type: newProd.type,
+              features: [
+                  { title: 'Característica 1', description: newProd.features || 'Descripción estándar' },
+                  { title: 'Eficiencia', description: 'Alta eficiencia energética' }
+              ],
+              pricing: [{ id: 'def', name: 'Equipo Base', price: priceNum }],
+              installationKits: [{ id: 'k1', name: 'Instalación Básica', price: 250 }],
+              extras: [{ id: 'e1', name: 'Soportes', price: 50 }],
+              financing: [{ label: '12 Meses', months: 12, commission: 0 }]
+          };
+
+          await api.addProduct(payload);
+          setMessage({ text: 'Producto creado correctamente en BD.', type: 'success' });
+          setShowAddProduct(false);
+          setNewProd({ brand: '', model: '', type: 'Aire Acondicionado', price: '', features: '' });
+          fetchProducts(); // Refresh list
+      } catch (e: any) {
+          setMessage({ text: 'Error creando producto: ' + e.message, type: 'error' });
+      } finally {
+          setLoading(false);
+      }
+  };
+
+  const handleDeleteProduct = async (id: string) => {
+      if(!confirm("¿Seguro que quieres eliminar este producto de la base de datos?")) return;
+      setLoading(true);
+      try {
+          await api.deleteProduct(id);
+          setMessage({ text: 'Producto eliminado.', type: 'success' });
+          fetchProducts();
+      } catch(e: any) {
+          setMessage({ text: 'Error al eliminar: ' + e.message, type: 'error' });
+      } finally {
+          setLoading(false);
+      }
   };
 
   const filteredQuotes = quotes.filter(q => 
@@ -101,7 +150,7 @@ const Admin: React.FC<AdminProps> = ({ onLogout }) => {
             onClick={() => setActiveTab('products')} 
             className={`px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 transition-all ${activeTab === 'products' ? 'bg-brand-100 text-brand-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
           >
-            <FileText size={16}/> Catálogo PDF
+            <Package size={16}/> Catálogo
           </button>
           <button 
             onClick={() => setActiveTab('quotes')} 
@@ -115,38 +164,79 @@ const Admin: React.FC<AdminProps> = ({ onLogout }) => {
           <div className={`p-4 rounded-xl mb-6 flex items-center gap-3 ${message.type === 'error' ? 'bg-red-100 text-red-800' : 'bg-emerald-100 text-emerald-800'}`}>
             {message.type === 'error' ? <AlertCircle size={20}/> : <CheckCircle size={20}/>}
             <span className="font-medium">{message.text}</span>
+            <button onClick={() => setMessage(null)} className="ml-auto"><X size={16}/></button>
           </div>
         )}
 
         {activeTab === 'products' ? (
-          <div className="grid md:grid-cols-2 gap-6 animate-in fade-in slide-in-from-bottom-2">
-            <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
-              <div className="w-12 h-12 bg-brand-100 rounded-full flex items-center justify-center text-brand-600 mb-4">
-                <UploadCloud size={24}/>
-              </div>
-              <h3 className="text-xl font-bold mb-2">Subir PDF de Proveedor</h3>
-              <p className="text-slate-500 text-sm mb-6">Sube un archivo técnico. La IA extraerá los datos y actualizará el catálogo automáticamente.</p>
-              
-              <label className={`block w-full border-2 border-dashed border-slate-300 rounded-xl p-8 text-center cursor-pointer hover:bg-slate-50 hover:border-brand-400 transition-colors ${loading ? 'opacity-50 pointer-events-none' : ''}`}>
-                <input type="file" accept=".pdf" className="hidden" onChange={handleUpload} disabled={loading} />
-                <span className="text-brand-600 font-bold block mb-1">Click para seleccionar</span>
-                <span className="text-xs text-slate-400">Solo archivos PDF</span>
-              </label>
+          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
+            
+            {/* Header & Add Button */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <h3 className="font-bold text-xl text-slate-800">Productos en Base de Datos</h3>
+                <div className="flex gap-2">
+                    {/* Botón siempre visible ahora */}
+                    <button 
+                        onClick={handleSeedDatabase}
+                        className="bg-slate-100 text-slate-600 px-4 py-2 rounded-xl font-bold flex items-center gap-2 hover:bg-slate-200 transition-colors border border-slate-200"
+                    >
+                        <Database size={18}/> Cargar Datos Demo a BD
+                    </button>
+                    
+                    <button 
+                        onClick={() => setShowAddProduct(true)}
+                        className="bg-brand-600 text-white px-4 py-2 rounded-xl font-bold flex items-center gap-2 hover:bg-brand-700 transition-colors shadow-lg shadow-brand-200"
+                    >
+                        <Plus size={18}/> Nuevo Producto
+                    </button>
+                </div>
             </div>
 
-            <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
-               <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center text-purple-600 mb-4">
-                <RefreshCw size={24}/>
-              </div>
-              <h3 className="text-xl font-bold mb-2">Escanear Google Drive</h3>
-              <p className="text-slate-500 text-sm mb-6">Busca nuevos PDFs en la carpeta configurada y procesa los pendientes.</p>
-              <button 
-                onClick={handleScan} 
-                disabled={loading}
-                className="w-full bg-slate-900 text-white font-bold py-3 rounded-xl hover:bg-slate-800 transition-colors disabled:opacity-70"
-              >
-                {loading ? 'Procesando...' : 'Iniciar Escaneo'}
-              </button>
+            {/* Product List */}
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                <table className="w-full text-sm text-left">
+                    <thead className="bg-slate-50 text-slate-500 font-bold uppercase text-xs">
+                        <tr>
+                            <th className="p-4">Marca</th>
+                            <th className="p-4">Modelo</th>
+                            <th className="p-4">Tipo</th>
+                            <th className="p-4">Precio Base</th>
+                            <th className="p-4 text-right">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                        {dbProducts.map(p => (
+                            <tr key={p.id} className="hover:bg-slate-50">
+                                <td className="p-4 font-bold text-slate-800">{p.brand}</td>
+                                <td className="p-4 text-slate-600">{p.model}</td>
+                                <td className="p-4"><span className="bg-slate-100 text-slate-600 px-2 py-1 rounded text-xs font-bold">{p.type}</span></td>
+                                <td className="p-4 font-mono text-brand-600 font-bold">
+                                    {p.pricing && p.pricing.length > 0 ? p.pricing[0].price : 0} €
+                                </td>
+                                <td className="p-4 text-right">
+                                    <button 
+                                        onClick={() => handleDeleteProduct(p.id)}
+                                        className="text-red-400 hover:text-red-600 p-2 hover:bg-red-50 rounded-lg transition-colors"
+                                        title="Eliminar"
+                                    >
+                                        <Trash2 size={16}/>
+                                    </button>
+                                </td>
+                            </tr>
+                        ))}
+                         {dbProducts.length === 0 && (
+                            <tr>
+                                <td colSpan={5} className="p-8 text-center text-slate-400 bg-slate-50">
+                                    <div className="flex flex-col items-center gap-2">
+                                        <Database className="text-slate-300" size={32}/>
+                                        <p>La base de datos está vacía.</p>
+                                        <p className="text-xs">Usa "Cargar Datos Demo" para empezar rápidamente.</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        )}
+                    </tbody>
+                </table>
             </div>
           </div>
         ) : (
@@ -199,13 +289,6 @@ const Admin: React.FC<AdminProps> = ({ onLogout }) => {
                                         )}
                                     </td>
                                     <td className="p-4 text-right flex justify-end gap-2">
-                                        <button 
-                                            onClick={() => handleResend(q.id)}
-                                            className="p-2 text-slate-400 hover:text-brand-600 hover:bg-brand-50 rounded-lg transition-colors"
-                                            title="Reenviar Email"
-                                        >
-                                            <Mail size={16} />
-                                        </button>
                                         <a 
                                             href={q.pdfUrl} 
                                             target="_blank" 
@@ -228,6 +311,77 @@ const Admin: React.FC<AdminProps> = ({ onLogout }) => {
                 </div>
             </div>
           </div>
+        )}
+
+        {/* Add Product Modal */}
+        {showAddProduct && (
+            <div className="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in">
+                <div className="bg-white p-8 rounded-3xl w-full max-w-md shadow-2xl animate-in zoom-in-95">
+                    <div className="flex justify-between items-center mb-6">
+                        <h3 className="font-bold text-xl">Nuevo Producto</h3>
+                        <button onClick={() => setShowAddProduct(false)}><X className="text-slate-400 hover:text-slate-600"/></button>
+                    </div>
+                    <div className="space-y-4">
+                        <div>
+                            <label className="block text-xs font-bold text-slate-500 mb-1">Marca</label>
+                            <input 
+                                className="w-full border p-2 rounded-lg bg-slate-50 outline-none focus:ring-2 focus:ring-brand-500" 
+                                placeholder="Ej: Daikin"
+                                value={newProd.brand}
+                                onChange={e => setNewProd({...newProd, brand: e.target.value})}
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-bold text-slate-500 mb-1">Modelo</label>
+                            <input 
+                                className="w-full border p-2 rounded-lg bg-slate-50 outline-none focus:ring-2 focus:ring-brand-500" 
+                                placeholder="Ej: Perfera 35"
+                                value={newProd.model}
+                                onChange={e => setNewProd({...newProd, model: e.target.value})}
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-bold text-slate-500 mb-1">Tipo</label>
+                            <select 
+                                className="w-full border p-2 rounded-lg bg-slate-50 outline-none focus:ring-2 focus:ring-brand-500"
+                                value={newProd.type}
+                                onChange={e => setNewProd({...newProd, type: e.target.value})}
+                            >
+                                <option value="Aire Acondicionado">Aire Acondicionado</option>
+                                <option value="Caldera">Caldera</option>
+                                <option value="Termo Eléctrico">Termo Eléctrico</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-xs font-bold text-slate-500 mb-1">Precio Base (€)</label>
+                            <input 
+                                type="number"
+                                className="w-full border p-2 rounded-lg bg-slate-50 outline-none focus:ring-2 focus:ring-brand-500" 
+                                placeholder="0"
+                                value={newProd.price}
+                                onChange={e => setNewProd({...newProd, price: e.target.value})}
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-bold text-slate-500 mb-1">Características (Opcional)</label>
+                            <input 
+                                className="w-full border p-2 rounded-lg bg-slate-50 outline-none focus:ring-2 focus:ring-brand-500" 
+                                placeholder="Ej: Wifi integrado, Silencioso..."
+                                value={newProd.features}
+                                onChange={e => setNewProd({...newProd, features: e.target.value})}
+                            />
+                        </div>
+
+                        <button 
+                            onClick={handleAddProduct}
+                            disabled={loading}
+                            className="w-full bg-brand-600 hover:bg-brand-500 text-white font-bold py-3 rounded-xl mt-4 shadow-lg flex justify-center gap-2 disabled:opacity-70"
+                        >
+                            {loading ? 'Guardando...' : 'Crear Producto'}
+                        </button>
+                    </div>
+                </div>
+            </div>
         )}
       </div>
     </div>

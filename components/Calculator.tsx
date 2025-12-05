@@ -41,7 +41,7 @@ const Calculator: React.FC<CalculatorProps> = ({ product, onBack }) => {
     let t = selectedModel.price + selectedKit.price;
     Object.entries(extrasQty).forEach(([id, qty]) => {
       const extra = extrasData.find(e => e.id === id);
-      if (extra) t += (extra.price * qty);
+      if (extra) t += (extra.price * (qty as number));
     });
     return t;
   }, [selectedModel, selectedKit, extrasQty, extrasData]);
@@ -76,7 +76,7 @@ const Calculator: React.FC<CalculatorProps> = ({ product, onBack }) => {
 
     const extrasArr = Object.entries(extrasQty).map(([id, qty]) => {
       const e = extrasData.find(x => x.id === id);
-      return e ? (qty > 1 ? `${e.name} (x${qty})` : e.name) : '';
+      return e ? ((qty as number) > 1 ? `${e.name} (x${qty})` : e.name) : '';
     }).filter(Boolean);
 
     try {
@@ -238,7 +238,7 @@ const Calculator: React.FC<CalculatorProps> = ({ product, onBack }) => {
               {Object.keys(extrasQty).length > 0 && (
                  <div className="flex justify-between pb-3 border-b border-slate-800">
                     <span className="text-slate-400">Extras seleccionados</span>
-                    <span className="font-medium text-white">{Object.values(extrasQty).reduce((a,b)=>a+b,0)} items</span>
+                    <span className="font-medium text-white">{(Object.values(extrasQty) as number[]).reduce((a,b)=>a+b,0)} items</span>
                  </div>
               )}
 

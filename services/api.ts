@@ -1,3 +1,4 @@
+
 import { Product, SavedQuote, QuotePayload, ContactData } from '../types';
 import { createClient } from '@supabase/supabase-js';
 import { jsPDF } from 'jspdf';
@@ -15,15 +16,59 @@ class AppApi {
   async getCatalog(): Promise<Product[]> {
     const { data, error } = await supabase
       .from('products')
-      .select('*');
+      .select('*')
+      .order('created_at', { ascending: false });
 
     if (error) {
       console.error('Error fetching catalog:', error);
-      // Fallback a datos mock si no hay conexión o tabla vacía para que la web no se rompa
       return this.getMockCatalog();
     }
 
-    return data || [];
+    // Si la tabla está vacía, devolvemos el mock para que la web no se vea vacía al principio
+    if (!data || data.length === 0) {
+        console.log("Base de datos vacía, mostrando datos locales (Mock).");
+        return this.getMockCatalog();
+    }
+
+    return data;
+  }
+
+  // 1.b AGREGAR PRODUCTO MANUALMENTE
+  async addProduct(product: Partial<Product>): Promise<boolean> {
+    // Eliminamos el ID si viene vacío para que Supabase genere el UUID
+    const { id, ...payload } = product; 
+    
+    const { error } = await supabase
+        .from('products')
+        .insert([payload]);
+
+    if (error) {
+        console.error("Error adding product:", error);
+        throw error;
+    }
+    return true;
+  }
+
+  // 1.c ELIMINAR PRODUCTO
+  async deleteProduct(id: string): Promise<boolean> {
+      const { error } = await supabase.from('products').delete().eq('id', id);
+      if (error) throw error;
+      return true;
+  }
+
+  // 1.d CARGAR DATOS DEMO A LA BASE DE DATOS (SEED)
+  async seedDatabase(): Promise<string> {
+      const mocks = this.getMockCatalog();
+      // Preparamos los datos eliminando el ID '1', '2' etc, para que Supabase genere UUIDs reales
+      const payload = mocks.map(p => {
+          const { id, ...rest } = p;
+          return rest;
+      });
+
+      const { error } = await supabase.from('products').insert(payload);
+      
+      if (error) throw error;
+      return `Se han insertado ${payload.length} productos de ejemplo en la base de datos.`;
   }
 
   // 2. VERIFICAR CONTRASEÑA ADMIN
@@ -172,7 +217,7 @@ class AppApi {
   }
 
   // --- MOCK UTILS (Fallback) ---
-  private getMockCatalog(): Product[] {
+  public getMockCatalog(): Product[] {
     return [
        {
             id: '1', brand: 'Mitsubishi', model: 'MSZ-AY35', type: 'Aire Acondicionado',
@@ -226,9 +271,9 @@ class AppApi {
   }
   
   // No-ops
-  async uploadPdf(file: File): Promise<string> { return "Funcionalidad de subida desactivada en frontend"; }
-  async scanDrive(): Promise<string> { return "Drive Scan no disponible fuera de Google"; }
-  async resendEmail(id: string): Promise<string> { return "Requiere servidor de correo"; }
+  async uploadPdf(file: File): Promise<string> { return "Funcionalidad movida a 'Agregar Manualmente' en esta versión."; }
+  async scanDrive(): Promise<string> { return "Drive Scan no disponible en versión Supabase."; }
+  async resendEmail(id: string): Promise<string> { return "Requiere servidor de correo."; }
 }
 
 export const api = new AppApi();
