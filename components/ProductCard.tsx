@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Product } from '../types';
-import { ArrowRight, Star, Wind, Zap, Share2, Copy, Check, X } from 'lucide-react';
+import { ArrowRight, Star, Wind, Zap, Share2, Copy, Check, X, FileText } from 'lucide-react';
 
 interface ProductCardProps {
   product: Product;
@@ -30,6 +30,13 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) => {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const handlePdfClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (product.pdfUrl) {
+        window.open(product.pdfUrl, '_blank');
+    }
+  };
+
   return (
     <>
         <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden hover:shadow-xl transition-all duration-300 flex flex-col group relative">
@@ -45,6 +52,17 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) => {
             >
                 <Share2 size={18} />
             </button>
+
+            {/* PDF Button (Top Left) - Only if PDF exists */}
+            {product.pdfUrl && (
+                <button 
+                    onClick={handlePdfClick}
+                    className="absolute top-3 left-3 z-20 bg-white/80 hover:bg-white text-slate-400 hover:text-red-500 p-2 rounded-full shadow-sm backdrop-blur-sm transition-all transform hover:scale-110"
+                    title="Ver Ficha Técnica"
+                >
+                    <FileText size={18} />
+                </button>
+            )}
 
             <div className="z-10 text-center">
                 <h3 className="text-3xl font-black text-slate-300 tracking-tighter uppercase select-none">{product.brand}</h3>

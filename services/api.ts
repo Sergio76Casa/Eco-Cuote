@@ -2,6 +2,7 @@ import { Product, SavedQuote, QuotePayload, ContactData } from '../types';
 import { createClient } from '@supabase/supabase-js';
 import { jsPDF } from 'jspdf';
 import { GoogleGenAI } from "@google/genai";
+import emailjs from '@emailjs/browser';
 
 // --- CONFIGURACIÓN DE SUPABASE ---
 const SUPABASE_URL = 'https://reqsaffzqrytnovzwicl.supabase.co'; 
@@ -11,6 +12,11 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 // ⚠️ REEMPLAZA ESTO CON TU API KEY DE GEMINI (https://aistudio.google.com/)
 // En producción, usa import.meta.env.VITE_GEMINI_API_KEY
 const GEMINI_API_KEY = 'AIzaSyBxgh1qx2TMEamQ6GwX79h6imE6aMIoH2U'; 
+
+// --- CONFIGURACIÓN EMAILJS ---
+const EMAILJS_SERVICE_ID = 'service_rxyenxk';
+const EMAILJS_TEMPLATE_ID = 'template_5rxfm3k';
+const EMAILJS_PUBLIC_KEY = '4uqOJJJNCjiaRGGjw';
 
 // Initialize Clients
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -52,25 +58,28 @@ class AppApi {
     return true;
   }
 
-  // 1.c ELIMINAR PRODUCTO
+  // 1.c ACTUALIZAR PRODUCTO EXISTENTE
+  async updateProduct(id: string, updates: Partial<Product>): Promise<boolean> {
+      // Eliminamos el ID del payload para evitar conflictos, aunque Supabase lo ignoraría
+      const { id: _, ...payload } = updates;
+      
+      const { error } = await supabase
+          .from('products')
+          .update(payload)
+          .eq('id', id);
+
+      if (error) {
+          console.error("Error updating product:", error);
+          throw error;
+      }
+      return true;
+  }
+
+  // 1.d ELIMINAR PRODUCTO
   async deleteProduct(id: string): Promise<boolean> {
       const { error } = await supabase.from('products').delete().eq('id', id);
       if (error) throw error;
       return true;
-  }
-
-  // 1.d CARGAR DATOS DEMO A LA BASE DE DATOS (SEED)
-  async seedDatabase(): Promise<string> {
-      const mocks = this.getMockCatalog();
-      const payload = mocks.map(p => {
-          const { id, ...rest } = p;
-          return rest;
-      });
-
-      const { error } = await supabase.from('products').insert(payload);
-      
-      if (error) throw error;
-      return `Se han insertado ${payload.length} productos de ejemplo en la base de datos.`;
   }
 
   // 1.e SUBIR PDF DE PRODUCTO
@@ -185,9 +194,10 @@ class AppApi {
     return { success: password === 'admin123' };
   }
 
-  // 3. GUARDAR PRESUPUESTO Y GENERAR PDF
+  // 3. GUARDAR PRESUPUESTO Y GENERAR PDF + EMAIL
   async saveQuote(payload: QuotePayload): Promise<{ success: boolean; pdfUrl: string; emailSent: boolean }> {
     try {
+      // 1. Generar y Subir PDF
       const pdfBlob = this.generateClientSidePDF(payload);
       
       const fileName = `quotes/${Date.now()}_${payload.client.nombre.replace(/\s+/g, '_')}.pdf`;
@@ -201,6 +211,19 @@ class AppApi {
         publicUrl = data.publicUrl;
       }
 
+      // 2. Enviar Email (si se solicita)
+      let emailSent = false;
+      if (payload.sendEmail && publicUrl) {
+          emailSent = await this.sendEmailWithPdf(
+              payload.client.email,
+              payload.client.nombre,
+              payload.brand,
+              payload.model,
+              publicUrl
+          );
+      }
+
+      // 3. Guardar en Base de Datos
       const { error: dbError } = await supabase.from('quotes').insert({
         date: new Date().toISOString(),
         client_name: `${payload.client.nombre} ${payload.client.apellidos}`,
@@ -209,20 +232,42 @@ class AppApi {
         model: payload.model,
         price: payload.price,
         pdf_url: publicUrl,
-        email_sent: false 
+        email_sent: emailSent
       });
 
       if (dbError) throw dbError;
 
-      return { success: true, pdfUrl: publicUrl, emailSent: false };
+      return { success: true, pdfUrl: publicUrl, emailSent: emailSent };
 
-    } catch (e) {
+    } catch (e: any) {
       console.error("Error saving quote:", e);
-      return { success: false, pdfUrl: '', emailSent: false };
+      throw new Error(e.message || "Error guardando en base de datos");
     }
   }
 
-  // 4. OBTENER HISTORIAL
+  // AUX: Enviar Email con EmailJS
+  private async sendEmailWithPdf(toEmail: string, toName: string, brand: string, model: string, pdfUrl: string): Promise<boolean> {
+      try {
+          const result = await emailjs.send(
+              EMAILJS_SERVICE_ID,
+              EMAILJS_TEMPLATE_ID,
+              {
+                  client_email: toEmail,
+                  client_name: toName,
+                  brand: brand,
+                  model: model,
+                  pdf_url: pdfUrl
+              },
+              EMAILJS_PUBLIC_KEY
+          );
+          return result.status === 200;
+      } catch (error) {
+          console.error("EmailJS Error:", error);
+          return false;
+      }
+  }
+
+  // 4. OBTENER HISTORIAL (Registro)
   async getSavedQuotes(): Promise<SavedQuote[]> {
     const { data, error } = await supabase
       .from('quotes')
@@ -242,6 +287,51 @@ class AppApi {
       emailSent: row.email_sent,
       pdfUrl: row.pdf_url
     }));
+  }
+
+  // 4.b ELIMINAR PRESUPUESTO
+  async deleteQuote(id: string): Promise<boolean> {
+      const { error } = await supabase.from('quotes').delete().eq('id', id);
+      if (error) throw error;
+      return true;
+  }
+
+  // 4.c ACTUALIZAR ESTADO PRESUPUESTO
+  async updateQuoteStatus(id: string, emailSent: boolean): Promise<boolean> {
+      const { error } = await supabase
+        .from('quotes')
+        .update({ email_sent: emailSent })
+        .eq('id', id);
+      
+      if (error) throw error;
+      return true;
+  }
+  
+  // 4.d REENVIAR EMAIL (Desde Admin)
+  async resendEmail(id: string): Promise<string> {
+    // Recuperar datos del presupuesto
+    const { data: quote, error } = await supabase
+        .from('quotes')
+        .select('*')
+        .eq('id', id)
+        .single();
+    
+    if (error || !quote) throw new Error("Presupuesto no encontrado.");
+
+    const sent = await this.sendEmailWithPdf(
+        quote.client_email,
+        quote.client_name,
+        quote.brand,
+        quote.model,
+        quote.pdf_url
+    );
+
+    if (sent) {
+        await this.updateQuoteStatus(id, true);
+        return "Email reenviado correctamente.";
+    } else {
+        throw new Error("Fallo al conectar con EmailJS.");
+    }
   }
 
   // 5. ENVIAR CONTACTO
@@ -288,33 +378,68 @@ class AppApi {
     doc.text(`Marca: ${data.brand}`, 20, 110);
     doc.text(`Modelo: ${data.model}`, 20, 116);
 
+    let currentY = 130;
+
     // Extras
     if (data.extras && data.extras.length > 0) {
-      doc.text("Extras incluidos:", 20, 130);
+      doc.setFont('helvetica', 'bold');
+      doc.text("Extras incluidos:", 20, currentY);
+      doc.setFont('helvetica', 'normal');
       data.extras.forEach((ex, i) => {
-        doc.text(`- ${ex}`, 25, 136 + (i * 6));
+        doc.text(`- ${ex}`, 25, currentY + 6 + (i * 6));
       });
+      // Move Y down based on number of extras + padding
+      currentY += 6 + (data.extras.length * 6) + 10;
+    } else {
+        currentY += 10;
     }
 
-    // Precio
-    const yPos = 180;
+    // Ensure we are at least at a certain height for the Total section to maintain layout
+    const minTotalY = 180;
+    const totalY = Math.max(currentY, minTotalY);
+
+    // Precio Total Line
     doc.setDrawColor(200, 200, 200);
-    doc.line(20, yPos, 190, yPos);
+    doc.line(20, totalY, 190, totalY);
+    
     doc.setFontSize(16);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(37, 99, 235);
-    doc.text(`TOTAL: ${data.price} €`, 190, yPos + 10, { align: 'right' });
+    doc.text(`TOTAL: ${data.price} €`, 190, totalY + 10, { align: 'right' });
     
     doc.setFontSize(10);
     doc.setTextColor(100, 100, 100);
-    doc.text("(IVA e Instalación Incluidos)", 190, yPos + 16, { align: 'right' });
+    doc.setFont('helvetica', 'normal');
+    doc.text("(IVA e Instalación Incluidos)", 190, totalY + 16, { align: 'right' });
 
-    // Financiación
-    doc.setFontSize(10);
+    // Financiación Section
     doc.setTextColor(0,0,0);
-    doc.text("Condiciones de Pago:", 20, yPos + 30);
-    const splitFin = doc.splitTextToSize(data.financing, 170);
-    doc.text(splitFin, 20, yPos + 36);
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.text("Condiciones de Pago:", 20, totalY + 30);
+    
+    const financingText = data.financing || "Pago al Contado";
+    const isFinanced = financingText.includes('\n') || financingText.toLowerCase().includes('meses');
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+
+    if (isFinanced) {
+        // Highlighted box for financing details
+        doc.setFillColor(241, 245, 249); // slate-100
+        doc.setDrawColor(203, 213, 225); // slate-300
+        doc.rect(20, totalY + 34, 100, 25, 'FD'); // Fill and Draw
+        
+        doc.setTextColor(30, 58, 138); // brand-900
+        const lines = financingText.split('\n');
+        lines.forEach((line, i) => {
+            if (i === 0) doc.setFont('helvetica', 'bold'); // Label bold
+            else doc.setFont('helvetica', 'normal');
+            doc.text(line, 25, totalY + 40 + (i * 6));
+        });
+    } else {
+        doc.text(financingText, 20, totalY + 36);
+    }
 
     return doc.output('blob');
   }
@@ -348,10 +473,6 @@ class AppApi {
         }
     ];
   }
-  
-  async uploadPdf(file: File): Promise<string> { return ""; }
-  async scanDrive(): Promise<string> { return ""; }
-  async resendEmail(id: string): Promise<string> { return ""; }
 }
 
 export const api = new AppApi();

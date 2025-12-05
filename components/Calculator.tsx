@@ -4,7 +4,7 @@ import { Product, ClientData } from '../types';
 import { api } from '../services/api';
 import { 
   CheckCircle2, CreditCard, ChevronLeft, Save, 
-  Minus, Plus, ShieldCheck, Download, Loader2 
+  Minus, Plus, ShieldCheck, Download, Loader2, FileText 
 } from 'lucide-react';
 
 interface CalculatorProps {
@@ -270,6 +270,18 @@ const Calculator: React.FC<CalculatorProps> = ({ product, onBack }) => {
               </div>
               <p className="text-xs text-slate-500 text-right">IVA e instalación incluidos</p>
             </div>
+            
+            {/* PDF Link in Summary */}
+            {product.pdfUrl && (
+                <a 
+                    href={product.pdfUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="w-full mb-4 py-3 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl font-bold flex justify-center items-center gap-2 transition-colors text-sm"
+                >
+                    <FileText size={16}/> Ver Ficha Técnica Original
+                </a>
+            )}
 
             <button 
                 onClick={() => setIsModalOpen(true)} 
