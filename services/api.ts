@@ -1,3 +1,4 @@
+
 import { Product, SavedQuote, QuotePayload, ContactData, CompanyInfo } from '../types';
 import { createClient } from '@supabase/supabase-js';
 import { jsPDF } from 'jspdf';
