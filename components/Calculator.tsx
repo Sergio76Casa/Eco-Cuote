@@ -240,6 +240,21 @@ const Calculator: React.FC<CalculatorProps> = ({ product, onBack }) => {
         {/* Right Column: Sticky Summary */}
         <div className="xl:col-span-1">
           <div className="bg-slate-900 text-white p-8 rounded-3xl sticky top-6 shadow-xl ring-1 ring-slate-900/5">
+            
+            {/* PRODUCT HEADER IMAGE */}
+            <div className="mb-6 bg-white rounded-xl p-2 relative overflow-hidden">
+                {product.imageUrl ? (
+                    <img src={product.imageUrl} alt={product.model} className="w-full h-32 object-contain rounded-lg"/>
+                ) : (
+                    <div className="w-full h-32 bg-slate-100 rounded-lg flex items-center justify-center text-slate-300 font-bold">Sin Imagen</div>
+                )}
+                {product.brandLogoUrl && (
+                    <div className="absolute top-3 left-3 w-10 h-auto opacity-90 mix-blend-multiply">
+                        <img src={product.brandLogoUrl} className="w-full"/>
+                    </div>
+                )}
+            </div>
+
             <h3 className="text-xl font-bold mb-6 flex items-center gap-2">
                 <ShieldCheck className="text-brand-400"/> Resumen
             </h3>

@@ -42,6 +42,8 @@ export interface Product {
   financing: FinancingOption[];
   rawContext?: string;
   pdfUrl?: string; // Link to the original uploaded PDF
+  imageUrl?: string; // Product cover image
+  brandLogoUrl?: string; // Brand logo image
 }
 
 export interface ClientData {

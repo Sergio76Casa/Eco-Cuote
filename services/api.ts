@@ -1,4 +1,3 @@
-
 import { Product, SavedQuote, QuotePayload, ContactData, CompanyInfo } from '../types';
 import { createClient } from '@supabase/supabase-js';
 import { jsPDF } from 'jspdf';
@@ -72,17 +71,28 @@ class AppApi {
       return true;
   }
 
-  // 1.e SUBIR PDF DE PRODUCTO
-  async uploadProductPdf(file: File): Promise<string> {
-      const fileName = `product-docs/${Date.now()}_${file.name.replace(/\s+/g, '_')}`;
+  // 1.e SUBIR ARCHIVO (Genérico: PDF, Imagen, Logo)
+  async uploadFile(file: File, folder: 'product-docs' | 'images' = 'product-docs'): Promise<string> {
+      // Clean filename
+      const cleanName = file.name.replace(/[^a-zA-Z0-9.]/g, '_');
+      const fileName = `${folder}/${Date.now()}_${cleanName}`;
+      
+      // We use the 'documents' bucket for everything as it is configured public
+      const bucketName = 'documents';
+
       const { data, error } = await supabase.storage
-          .from('documents')
+          .from(bucketName)
           .upload(fileName, file);
 
       if (error) throw error;
       
-      const { data: urlData } = supabase.storage.from('documents').getPublicUrl(fileName);
+      const { data: urlData } = supabase.storage.from(bucketName).getPublicUrl(fileName);
       return urlData.publicUrl;
+  }
+
+  // Wrapper for backward compatibility if needed, or replace usages
+  async uploadProductPdf(file: File): Promise<string> {
+      return this.uploadFile(file, 'product-docs');
   }
 
   // 1.f EXTRAER DATOS CON GEMINI (IA)
@@ -92,15 +102,7 @@ class AppApi {
         const base64Data = await this.fileToBase64(file);
 
         // 2. Initialize Gemini
-        // Usamos import.meta.env que es el estándar de Vite para el navegador
-        const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-        
-        if (!apiKey) {
-            console.error("Gemini API Key missing. Please set VITE_GEMINI_API_KEY in Vercel.");
-            throw new Error("Falta la API Key de Gemini. Configura VITE_GEMINI_API_KEY en Vercel.");
-        }
-
-        const ai = new GoogleGenAI({ apiKey });
+        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
         
         // 3. Define Prompt
         const prompt = `Eres un experto en climatización. Analiza el PDF adjunto y extrae los datos técnicos y comerciales en formato JSON estrictamente válido.

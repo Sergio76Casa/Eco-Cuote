@@ -4,7 +4,7 @@ import { api } from '../services/api';
 import { SavedQuote, Product, Feature, PricingOption, InstallKit, Extra, FinancingOption } from '../types';
 import { 
   LogOut, Package, FileText, AlertCircle, CheckCircle, 
-  Plus, Trash2, X, Database, FileUp, Search, Sparkles, Loader2, Save, Send, Edit, ChevronDown, ChevronUp
+  Plus, Trash2, X, Database, FileUp, Search, Sparkles, Loader2, Save, Send, Edit, ChevronDown, ChevronUp, Image as ImageIcon, Award
 } from 'lucide-react';
 
 interface AdminProps {
@@ -139,10 +139,14 @@ const Admin: React.FC<AdminProps> = ({ onLogout }) => {
       extras: [],
       financing: [],
       rawContext: '',
-      pdfUrl: ''
+      pdfUrl: '',
+      imageUrl: '',
+      brandLogoUrl: ''
   });
   
   const [pdfFile, setPdfFile] = useState<File | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [logoFile, setLogoFile] = useState<File | null>(null);
 
   useEffect(() => {
     if (activeTab === 'quotes') fetchHistory();
@@ -208,9 +212,11 @@ const Admin: React.FC<AdminProps> = ({ onLogout }) => {
       setEditingProductId(null);
       setProdForm({
         id: '', brand: '', model: '', type: 'Aire Acondicionado',
-        features: [], pricing: [], installationKits: [], extras: [], financing: [], rawContext: '', pdfUrl: ''
+        features: [], pricing: [], installationKits: [], extras: [], financing: [], rawContext: '', pdfUrl: '', imageUrl: '', brandLogoUrl: ''
       });
       setPdfFile(null);
+      setImageFile(null);
+      setLogoFile(null);
       setShowAddProduct(true);
   };
 
@@ -218,7 +224,9 @@ const Admin: React.FC<AdminProps> = ({ onLogout }) => {
       setEditingProductId(p.id);
       // Deep copy to avoid reference issues
       setProdForm(JSON.parse(JSON.stringify(p)));
-      setPdfFile(null); 
+      setPdfFile(null);
+      setImageFile(null); 
+      setLogoFile(null);
       setShowAddProduct(true);
   };
 
@@ -229,12 +237,25 @@ const Admin: React.FC<AdminProps> = ({ onLogout }) => {
       }
       setLoading(true);
       try {
+          // 1. Upload PDF if present
           let pdfUrl = prodForm.pdfUrl || '';
           if (pdfFile) {
-              pdfUrl = await api.uploadProductPdf(pdfFile);
+              pdfUrl = await api.uploadFile(pdfFile, 'product-docs');
           }
 
-          // Ensure at least one pricing option exists if array is empty but we want to save
+          // 2. Upload Image if present
+          let imageUrl = prodForm.imageUrl || '';
+          if (imageFile) {
+              imageUrl = await api.uploadFile(imageFile, 'images');
+          }
+
+          // 3. Upload Logo if present
+          let logoUrl = prodForm.brandLogoUrl || '';
+          if (logoFile) {
+              logoUrl = await api.uploadFile(logoFile, 'images');
+          }
+
+          // Ensure at least one pricing option exists
           let finalPricing = [...prodForm.pricing];
           if (finalPricing.length === 0) {
               finalPricing.push({ id: 'p1', name: prodForm.model, price: 0 });
@@ -249,7 +270,9 @@ const Admin: React.FC<AdminProps> = ({ onLogout }) => {
               installationKits: prodForm.installationKits,
               extras: prodForm.extras,
               financing: prodForm.financing,
-              pdfUrl: pdfUrl
+              pdfUrl: pdfUrl,
+              imageUrl: imageUrl,
+              brandLogoUrl: logoUrl
           };
 
           if (editingProductId) {
@@ -263,6 +286,8 @@ const Admin: React.FC<AdminProps> = ({ onLogout }) => {
           setShowAddProduct(false);
           setEditingProductId(null);
           setPdfFile(null);
+          setImageFile(null);
+          setLogoFile(null);
           fetchProducts(); 
       } catch (e: any) {
           setMessage({ text: 'Error guardando: ' + e.message, type: 'error' });
@@ -372,6 +397,7 @@ const Admin: React.FC<AdminProps> = ({ onLogout }) => {
                             <th className="p-4">Marca / Modelo</th>
                             <th className="p-4">Tipo</th>
                             <th className="p-4">Precios</th>
+                            <th className="p-4 text-center">Imágenes</th>
                             <th className="p-4 text-center">Ficha</th>
                             <th className="p-4 text-right">Acciones</th>
                         </tr>
@@ -380,14 +406,31 @@ const Admin: React.FC<AdminProps> = ({ onLogout }) => {
                         {dbProducts.map(p => (
                             <tr key={p.id} className="hover:bg-slate-50 group">
                                 <td className="p-4 cursor-pointer" onClick={() => openEditModal(p)}>
-                                    <div className="font-bold text-brand-700 hover:underline">{p.brand}</div>
-                                    <div className="text-slate-600 font-medium">{p.model}</div>
+                                    <div className="flex items-center gap-3">
+                                        {p.imageUrl ? (
+                                            <img src={p.imageUrl} alt="" className="w-10 h-10 rounded-lg object-cover border border-slate-200 bg-white"/>
+                                        ) : (
+                                            <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center text-slate-400">
+                                                <ImageIcon size={16}/>
+                                            </div>
+                                        )}
+                                        <div>
+                                            <div className="font-bold text-brand-700 hover:underline">{p.brand}</div>
+                                            <div className="text-slate-600 font-medium">{p.model}</div>
+                                        </div>
+                                    </div>
                                 </td>
                                 <td className="p-4"><span className="bg-slate-100 text-slate-700 px-2.5 py-1 rounded text-xs font-bold border border-slate-200">{p.type}</span></td>
                                 <td className="p-4 font-mono text-slate-700 text-xs">
                                     {p.pricing?.map(pr => (
                                         <div key={pr.id} className="mb-1">{pr.name}: <b className="text-brand-600">{pr.price}€</b></div>
                                     ))}
+                                </td>
+                                <td className="p-4 text-center">
+                                    <div className="flex justify-center gap-1">
+                                        <span className={`w-2 h-2 rounded-full ${p.imageUrl ? 'bg-green-500' : 'bg-slate-200'}`} title="Portada"></span>
+                                        <span className={`w-2 h-2 rounded-full ${p.brandLogoUrl ? 'bg-blue-500' : 'bg-slate-200'}`} title="Logo"></span>
+                                    </div>
                                 </td>
                                 <td className="p-4 text-center">
                                     {p.pdfUrl ? (
@@ -496,36 +539,73 @@ const Admin: React.FC<AdminProps> = ({ onLogout }) => {
                         
                         {/* 1. PDF IMPORT & BASIC INFO */}
                         <div className="grid md:grid-cols-2 gap-8">
-                            <div className="space-y-4">
-                                <h4 className="font-bold text-slate-800 flex items-center gap-2 text-sm uppercase tracking-wider"><Sparkles size={16} className="text-brand-500"/> Importación IA</h4>
-                                <div className={`p-4 bg-white rounded-2xl border border-brand-100 shadow-sm transition-all hover:shadow-md ${loading ? 'opacity-60 pointer-events-none' : ''}`}>
-                                    {!pdfFile ? (
-                                        <label className="w-full border-2 border-dashed border-brand-200 p-6 rounded-xl bg-brand-50/50 hover:bg-brand-50 cursor-pointer flex flex-col items-center justify-center transition-colors group h-40">
-                                            <FileUp size={32} className="text-brand-400 mb-3 group-hover:scale-110 transition-transform"/>
-                                            <span className="text-sm text-brand-700 font-bold">Subir PDF para auto-rellenar</span>
-                                            <span className="text-xs text-brand-500 mt-1">Arrastra o haz clic aquí</span>
-                                            <input type="file" accept=".pdf" className="hidden" onChange={e => e.target.files && setPdfFile(e.target.files[0])}/>
-                                        </label>
-                                    ) : (
-                                        <div className="space-y-4">
-                                            <div className="flex items-center justify-between p-4 bg-brand-50 border border-brand-200 rounded-xl">
-                                                <div className="flex items-center gap-3 overflow-hidden">
-                                                    <div className="p-2 bg-white rounded-lg border border-brand-100">
+                            <div className="space-y-6">
+                                {/* PDF UPLOAD */}
+                                <div>
+                                    <h4 className="font-bold text-slate-800 flex items-center gap-2 text-sm uppercase tracking-wider mb-3"><Sparkles size={16} className="text-brand-500"/> Importación IA</h4>
+                                    <div className={`p-4 bg-white rounded-2xl border border-brand-100 shadow-sm transition-all hover:shadow-md ${loading ? 'opacity-60 pointer-events-none' : ''}`}>
+                                        {!pdfFile ? (
+                                            <label className="w-full border-2 border-dashed border-brand-200 p-6 rounded-xl bg-brand-50/50 hover:bg-brand-50 cursor-pointer flex flex-col items-center justify-center transition-colors group h-40">
+                                                <FileUp size={32} className="text-brand-400 mb-3 group-hover:scale-110 transition-transform"/>
+                                                <span className="text-sm text-brand-700 font-bold">Subir PDF para auto-rellenar</span>
+                                                <input type="file" accept=".pdf" className="hidden" onChange={e => e.target.files && setPdfFile(e.target.files[0])}/>
+                                            </label>
+                                        ) : (
+                                            <div className="space-y-4">
+                                                <div className="flex items-center justify-between p-4 bg-brand-50 border border-brand-200 rounded-xl">
+                                                    <div className="flex items-center gap-3 overflow-hidden">
                                                         <FileText size={24} className="text-brand-600 shrink-0"/>
-                                                    </div>
-                                                    <div className="overflow-hidden">
                                                         <span className="text-sm font-bold text-brand-900 truncate block">{pdfFile.name}</span>
-                                                        <span className="text-xs text-brand-500">{(pdfFile.size / 1024 / 1024).toFixed(2)} MB</span>
                                                     </div>
+                                                    <button onClick={() => setPdfFile(null)} className="text-red-400 hover:text-red-600 p-2"><Trash2 size={18}/></button>
                                                 </div>
-                                                <button onClick={() => setPdfFile(null)} className="text-red-400 hover:text-red-600 p-2 hover:bg-red-50 rounded-lg transition-colors"><Trash2 size={18}/></button>
+                                                <button onClick={handleAnalyzePdf} disabled={aiLoading} className="w-full bg-brand-600 text-white text-sm font-bold py-3 rounded-xl flex items-center justify-center gap-2 hover:bg-brand-700 shadow-md">
+                                                    {aiLoading ? <Loader2 className="animate-spin" size={18}/> : <Sparkles size={18}/>}
+                                                    {aiLoading ? 'Analizando...' : 'Extraer Datos'}
+                                                </button>
                                             </div>
-                                            <button onClick={handleAnalyzePdf} disabled={aiLoading} className="w-full bg-brand-600 text-white text-sm font-bold py-3 rounded-xl flex items-center justify-center gap-2 hover:bg-brand-700 shadow-md transition-all active:scale-[0.98]">
-                                                {aiLoading ? <Loader2 className="animate-spin" size={18}/> : <Sparkles size={18}/>}
-                                                {aiLoading ? 'Analizando Documento...' : 'Extraer Datos Automáticamente'}
-                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* IMAGES UPLOAD */}
+                                <div>
+                                    <h4 className="font-bold text-slate-800 text-sm uppercase tracking-wider mb-3">Imágenes y Multimedia</h4>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        {/* Cover Image */}
+                                        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                                            <label className="block text-xs font-bold text-slate-700 mb-2 uppercase">Portada (Equipo)</label>
+                                            {prodForm.imageUrl || imageFile ? (
+                                                <div className="relative group">
+                                                    <img src={imageFile ? URL.createObjectURL(imageFile) : prodForm.imageUrl} className="w-full h-32 object-contain rounded-lg border border-slate-100 bg-slate-50"/>
+                                                    <button onClick={() => { setProdForm({...prodForm, imageUrl: ''}); setImageFile(null); }} className="absolute top-2 right-2 bg-white/90 p-1.5 rounded-full text-red-500 shadow-sm hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity"><Trash2 size={16}/></button>
+                                                </div>
+                                            ) : (
+                                                <label className="border-2 border-dashed border-slate-200 rounded-xl h-32 flex flex-col items-center justify-center cursor-pointer hover:bg-slate-50 hover:border-slate-300 transition-all text-slate-400">
+                                                    <ImageIcon size={24} className="mb-2"/>
+                                                    <span className="text-xs">Subir Foto</span>
+                                                    <input type="file" accept="image/*" className="hidden" onChange={e => e.target.files && setImageFile(e.target.files[0])}/>
+                                                </label>
+                                            )}
                                         </div>
-                                    )}
+
+                                        {/* Brand Logo */}
+                                        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                                            <label className="block text-xs font-bold text-slate-700 mb-2 uppercase">Logo Marca</label>
+                                            {prodForm.brandLogoUrl || logoFile ? (
+                                                <div className="relative group">
+                                                    <img src={logoFile ? URL.createObjectURL(logoFile) : prodForm.brandLogoUrl} className="w-full h-32 object-contain rounded-lg border border-slate-100 bg-slate-50"/>
+                                                    <button onClick={() => { setProdForm({...prodForm, brandLogoUrl: ''}); setLogoFile(null); }} className="absolute top-2 right-2 bg-white/90 p-1.5 rounded-full text-red-500 shadow-sm hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity"><Trash2 size={16}/></button>
+                                                </div>
+                                            ) : (
+                                                <label className="border-2 border-dashed border-slate-200 rounded-xl h-32 flex flex-col items-center justify-center cursor-pointer hover:bg-slate-50 hover:border-slate-300 transition-all text-slate-400">
+                                                    <Award size={24} className="mb-2"/>
+                                                    <span className="text-xs">Subir Logo</span>
+                                                    <input type="file" accept="image/*" className="hidden" onChange={e => e.target.files && setLogoFile(e.target.files[0])}/>
+                                                </label>
+                                            )}
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                             
