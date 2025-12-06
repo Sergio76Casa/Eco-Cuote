@@ -1,4 +1,4 @@
-import { Product, SavedQuote, QuotePayload, ContactData } from '../types';
+import { Product, SavedQuote, QuotePayload, ContactData, CompanyInfo } from '../types';
 import { createClient } from '@supabase/supabase-js';
 import { jsPDF } from 'jspdf';
 import { GoogleGenAI } from "@google/genai";
@@ -7,11 +7,6 @@ import emailjs from '@emailjs/browser';
 // --- CONFIGURACIÓN DE SUPABASE ---
 const SUPABASE_URL = 'https://reqsaffzqrytnovzwicl.supabase.co'; 
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJlcXNhZmZ6cXJ5dG5vdnp3aWNsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4NjIxMzgsImV4cCI6MjA4MDQzODEzOH0.PlAKMfoP1Ji0pNEifMIuJMgQFSQA_BOlJRUGjjPnj9M';
-
-// --- CONFIGURACIÓN GEMINI ---
-// ⚠️ REEMPLAZA ESTO CON TU API KEY DE GEMINI (https://aistudio.google.com/)
-// En producción, usa import.meta.env.VITE_GEMINI_API_KEY
-const GEMINI_API_KEY = 'AIzaSyBxgh1qx2TMEamQ6GwX79h6imE6aMIoH2U'; 
 
 // --- CONFIGURACIÓN EMAILJS ---
 const EMAILJS_SERVICE_ID = 'service_rxyenxk';
@@ -32,15 +27,9 @@ class AppApi {
 
     if (error) {
       console.error('Error fetching catalog:', error);
-      return this.getMockCatalog();
+      return [];
     }
-
-    if (!data || data.length === 0) {
-        console.log("Base de datos vacía, mostrando datos locales (Mock).");
-        return this.getMockCatalog();
-    }
-
-    return data;
+    return data || [];
   }
 
   // 1.b AGREGAR PRODUCTO MANUALMENTE
@@ -60,7 +49,7 @@ class AppApi {
 
   // 1.c ACTUALIZAR PRODUCTO EXISTENTE
   async updateProduct(id: string, updates: Partial<Product>): Promise<boolean> {
-      // Eliminamos el ID del payload para evitar conflictos, aunque Supabase lo ignoraría
+      // Eliminamos el ID del payload para evitar conflictos
       const { id: _, ...payload } = updates;
       
       const { error } = await supabase
@@ -97,18 +86,14 @@ class AppApi {
 
   // 1.f EXTRAER DATOS CON GEMINI (IA)
   async extractProductFromPdf(file: File): Promise<Partial<Product> | null> {
-    if (!GEMINI_API_KEY) {
-        throw new Error("Falta la API Key de Gemini en services/api.ts");
-    }
-
     try {
         // 1. Convert File to Base64
         const base64Data = await this.fileToBase64(file);
 
         // 2. Initialize Gemini
-        const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
+        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
         
-        // 3. Define Prompt (Adapted from your GAS script)
+        // 3. Define Prompt
         const prompt = `Eres un experto en climatización. Analiza el PDF adjunto y extrae los datos técnicos y comerciales en formato JSON estrictamente válido.
         
         Estructura JSON requerida:
@@ -132,7 +117,7 @@ class AppApi {
         5. NO incluyas markdown (backticks). Solo el JSON puro.
         `;
 
-        // 4. Call Gemini Model (gemini-2.5-flash)
+        // 4. Call Gemini Model
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
             contents: {
@@ -309,7 +294,6 @@ class AppApi {
   
   // 4.d REENVIAR EMAIL (Desde Admin)
   async resendEmail(id: string): Promise<string> {
-    // Recuperar datos del presupuesto
     const { data: quote, error } = await supabase
         .from('quotes')
         .select('*')
@@ -345,6 +329,34 @@ class AppApi {
     
     if (error) throw error;
     return "Mensaje guardado correctamente.";
+  }
+
+  // 6. GESTIÓN INFO EMPRESA
+  async getCompanyInfo(): Promise<CompanyInfo> {
+      const { data, error } = await supabase.from('settings').select('*').single();
+      if (error || !data) {
+          // Default fallback
+          return {
+              address: 'Calle Ejemplo 123, 28000 Madrid',
+              phone: '+34 900 123 456',
+              email: 'info@ecoquote.com'
+          };
+      }
+      return data;
+  }
+
+  async updateCompanyInfo(info: CompanyInfo): Promise<boolean> {
+      // Check if row exists
+      const { data } = await supabase.from('settings').select('id').single();
+      
+      if (data) {
+          const { error } = await supabase.from('settings').update(info).eq('id', data.id);
+          if (error) throw error;
+      } else {
+          const { error } = await supabase.from('settings').insert(info);
+          if (error) throw error;
+      }
+      return true;
   }
 
   // --- UTILS: GENERADOR PDF CLIENTE ---
@@ -388,13 +400,11 @@ class AppApi {
       data.extras.forEach((ex, i) => {
         doc.text(`- ${ex}`, 25, currentY + 6 + (i * 6));
       });
-      // Move Y down based on number of extras + padding
       currentY += 6 + (data.extras.length * 6) + 10;
     } else {
         currentY += 10;
     }
 
-    // Ensure we are at least at a certain height for the Total section to maintain layout
     const minTotalY = 180;
     const totalY = Math.max(currentY, minTotalY);
 
@@ -425,15 +435,14 @@ class AppApi {
     doc.setFontSize(10);
 
     if (isFinanced) {
-        // Highlighted box for financing details
-        doc.setFillColor(241, 245, 249); // slate-100
-        doc.setDrawColor(203, 213, 225); // slate-300
-        doc.rect(20, totalY + 34, 100, 25, 'FD'); // Fill and Draw
+        doc.setFillColor(241, 245, 249); 
+        doc.setDrawColor(203, 213, 225); 
+        doc.rect(20, totalY + 34, 100, 25, 'FD'); 
         
-        doc.setTextColor(30, 58, 138); // brand-900
+        doc.setTextColor(30, 58, 138); 
         const lines = financingText.split('\n');
         lines.forEach((line, i) => {
-            if (i === 0) doc.setFont('helvetica', 'bold'); // Label bold
+            if (i === 0) doc.setFont('helvetica', 'bold'); 
             else doc.setFont('helvetica', 'normal');
             doc.text(line, 25, totalY + 40 + (i * 6));
         });
@@ -442,36 +451,6 @@ class AppApi {
     }
 
     return doc.output('blob');
-  }
-
-  // --- MOCK UTILS ---
-  public getMockCatalog(): Product[] {
-    const financingCommon = [
-        { label: '12 meses', months: 12, coefficient: 0.087 },
-        { label: '24 meses', months: 24, coefficient: 0.045104 },
-        { label: '36 meses', months: 36, coefficient: 0.032206 },
-        { label: '48 meses', months: 48, coefficient: 0.0253 },
-        { label: '60 meses', months: 60, coefficient: 0.021183 }
-    ];
-
-    return [
-       {
-            id: 'comfee-01', brand: 'Comfee', model: 'Serie CF Midea', type: 'Aire Acondicionado',
-            features: [{ title: 'Eficiencia A++', description: 'Refrigeración A++ / Calefacción A+' }, { title: 'Tecnología Inverter', description: 'Mantiene temperatura constante' }],
-            pricing: [{ id: 'cf09', name: 'CF 09 (2.200 Frig/h)', price: 829 }, { id: 'cf12', name: 'CF 12 (3.000 Frig/h)', price: 889 }],
-            installationKits: [{ id: 'kit1', name: 'Kit Instalación + Certificado ITE-3', price: 149 }],
-            extras: [{ id: 't1438', name: 'Metro Lineal (1/4 - 3/8)', price: 90 }],
-            financing: financingCommon
-        },
-        {
-             id: 'baxi-01', brand: 'Baxi', model: 'Neodens Plus Eco', type: 'Caldera',
-             features: [{ title: 'Condensación', description: 'Rendimiento hasta 109%' }, { title: 'Microacumulación', description: 'Agua caliente sin espera' }],
-             pricing: [{ id: 'neo24', name: 'Neodens 24 kW', price: 1559 }],
-             installationKits: [{ id: 'k1', name: 'Kit Instalación + Certificado ITE-3', price: 149 }],
-             extras: [{ id: 'humos1', name: 'Tramo 1m Salida Humos 60/100', price: 50 }],
-             financing: financingCommon
-        }
-    ];
   }
 }
 

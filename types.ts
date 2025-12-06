@@ -82,3 +82,10 @@ export interface QuotePayload {
   client: ClientData;
   sendEmail: boolean;
 }
+
+export interface CompanyInfo {
+  id?: string;
+  address: string;
+  phone: string;
+  email: string;
+}
