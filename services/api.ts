@@ -101,8 +101,15 @@ class AppApi {
         // 1. Convert File to Base64
         const base64Data = await this.fileToBase64(file);
 
-        // 2. Initialize Gemini
-        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+        // 2. Initialize Gemini with VITE env var
+        const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+        
+        if (!apiKey) {
+            console.error("Falta VITE_GEMINI_API_KEY en variables de entorno");
+            throw new Error("No se ha configurado la API Key de Gemini. Revisa la configuración de Vercel.");
+        }
+
+        const ai = new GoogleGenAI({ apiKey });
         
         // 3. Define Prompt
         const prompt = `Eres un experto en climatización. Analiza el PDF adjunto y extrae los datos técnicos y comerciales en formato JSON estrictamente válido.
