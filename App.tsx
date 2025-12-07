@@ -7,7 +7,7 @@ import Calculator from './components/Calculator';
 import Admin from './components/Admin';
 import LanguageSelector from './components/LanguageSelector';
 import { useTranslation } from 'react-i18next';
-import { Settings, Lock, Mail, Phone, MapPin, Facebook, Instagram, Twitter, X, Send, Loader2, ArrowDown, SlidersHorizontal, ShieldCheck, Wrench, FileText, Cookie, Menu, Scale, Hammer, ClipboardCheck } from 'lucide-react';
+import { Settings, Lock, Mail, Phone, MapPin, Facebook, Instagram, Twitter, X, Send, Loader2, ArrowDown, SlidersHorizontal, ShieldCheck, Wrench, FileText, Cookie, Menu, Scale, Hammer, ClipboardCheck, Linkedin } from 'lucide-react';
 import { getLangText } from './i18nUtils';
 
 // Content for the informational modal (Only Images are hardcoded now, text comes from locales)
@@ -514,9 +514,26 @@ const App: React.FC = () => {
                         {companyInfo.companyDescription || t('footer.brand_desc')}
                     </p>
                     <div className="flex gap-4 pt-2">
-                        <a href="#" className="p-2 bg-slate-800 rounded-lg hover:bg-brand-600 hover:text-white transition-colors"><Facebook size={18}/></a>
-                        <a href="#" className="p-2 bg-slate-800 rounded-lg hover:bg-brand-600 hover:text-white transition-colors"><Instagram size={18}/></a>
-                        <a href="#" className="p-2 bg-slate-800 rounded-lg hover:bg-brand-600 hover:text-white transition-colors"><Twitter size={18}/></a>
+                        {companyInfo.facebookUrl && (
+                            <a href={companyInfo.facebookUrl} target="_blank" rel="noopener noreferrer" className="p-2 bg-slate-800 rounded-lg hover:bg-brand-600 hover:text-white transition-colors">
+                                <Facebook size={18}/>
+                            </a>
+                        )}
+                        {companyInfo.instagramUrl && (
+                            <a href={companyInfo.instagramUrl} target="_blank" rel="noopener noreferrer" className="p-2 bg-slate-800 rounded-lg hover:bg-brand-600 hover:text-white transition-colors">
+                                <Instagram size={18}/>
+                            </a>
+                        )}
+                        {companyInfo.twitterUrl && (
+                            <a href={companyInfo.twitterUrl} target="_blank" rel="noopener noreferrer" className="p-2 bg-slate-800 rounded-lg hover:bg-brand-600 hover:text-white transition-colors">
+                                <Twitter size={18}/>
+                            </a>
+                        )}
+                        {companyInfo.linkedinUrl && (
+                            <a href={companyInfo.linkedinUrl} target="_blank" rel="noopener noreferrer" className="p-2 bg-slate-800 rounded-lg hover:bg-brand-600 hover:text-white transition-colors">
+                                <Linkedin size={18}/>
+                            </a>
+                        )}
                     </div>
                     
                     {/* Certifications & Partners (Combined Zone) */}

@@ -402,7 +402,11 @@ class AppApi {
               partnerLogoUrl: '',
               isoLogoUrl: '',
               isoLinkUrl: '',
-              addresses: []
+              addresses: [],
+              facebookUrl: '',
+              instagramUrl: '',
+              twitterUrl: '',
+              linkedinUrl: ''
           };
       }
       return data;

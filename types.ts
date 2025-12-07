@@ -106,4 +106,9 @@ export interface CompanyInfo {
   partnerLogoUrl?: string; // Logo for footer (Endesa, RITE, etc)
   isoLogoUrl?: string; // Logo for ISO Certification
   isoLinkUrl?: string; // Link for ISO Certification
+  // Social Media
+  facebookUrl?: string;
+  instagramUrl?: string;
+  twitterUrl?: string;
+  linkedinUrl?: string;
 }

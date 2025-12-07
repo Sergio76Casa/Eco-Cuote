@@ -4,7 +4,7 @@ import { api } from '../services/api';
 import { SavedQuote, Product, LocalizedText, CompanyInfo, CompanyAddress } from '../types';
 import { 
   LogOut, Package, FileText, AlertCircle, CheckCircle, 
-  Plus, Trash2, X, FileUp, Search, Sparkles, Loader2, Save, Edit, ChevronDown, ChevronUp, Image as ImageIcon, Award, Globe, Settings, ArrowLeft, MapPin
+  Plus, Trash2, X, FileUp, Search, Sparkles, Loader2, Save, Edit, ChevronDown, ChevronUp, Image as ImageIcon, Award, Globe, Settings, ArrowLeft, MapPin, Share2, Facebook, Instagram, Twitter, Linkedin
 } from 'lucide-react';
 import { getLangText } from '../i18nUtils';
 
@@ -219,7 +219,8 @@ const Admin: React.FC<AdminProps> = ({ onLogout }) => {
   // Settings State
   const [companyInfo, setCompanyInfo] = useState<CompanyInfo>({ 
       address: '', addresses: [], phone: '', email: '', 
-      brandName: '', companyDescription: '', showLogo: false, partnerLogoUrl: '', isoLogoUrl: '', isoLinkUrl: '' 
+      brandName: '', companyDescription: '', showLogo: false, partnerLogoUrl: '', isoLogoUrl: '', isoLinkUrl: '',
+      facebookUrl: '', instagramUrl: '', twitterUrl: '', linkedinUrl: ''
   });
   
   const [companyLogoFile, setCompanyLogoFile] = useState<File | null>(null);
@@ -557,8 +558,8 @@ const Admin: React.FC<AdminProps> = ({ onLogout }) => {
         {/* --- TAB: PRODUCTS --- */}
         {activeTab === 'products' && (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
-            
-            {/* VIEW: LIST MODE */}
+            {/* ... (Existing Products List View Logic) ... */}
+            {/* Note: I'm including the full content, so this part remains same as provided in prompt but with 'localized' prop fixed if needed */}
             {viewMode === 'list' && (
                 <>
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -646,7 +647,7 @@ const Admin: React.FC<AdminProps> = ({ onLogout }) => {
                 </>
             )}
 
-            {/* VIEW: FORM MODE (FULL SCREEN EDITOR) */}
+            {/* VIEW: FORM MODE */}
             {viewMode === 'form' && (
                 <div className="animate-in slide-in-from-right-4 fade-in duration-300">
                     <div className="bg-white rounded-3xl shadow-lg border border-slate-200 overflow-hidden">
@@ -1125,6 +1126,49 @@ const Admin: React.FC<AdminProps> = ({ onLogout }) => {
                                     onChange={e => setCompanyInfo({...companyInfo, email: e.target.value})}
                                     placeholder="Ej: info@miempresa.com"
                                 />
+                            </div>
+                        </div>
+
+                        {/* SOCIAL MEDIA SECTION */}
+                        <div className="pt-4 border-t border-slate-100">
+                            <label className="block text-xs font-bold text-slate-500 uppercase mb-3">Redes Sociales</label>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="flex items-center gap-2">
+                                    <div className="p-2 bg-slate-100 rounded-lg text-slate-500"><Facebook size={18}/></div>
+                                    <input 
+                                        className="flex-1 border border-slate-300 rounded-lg p-2.5 text-sm outline-none focus:ring-2 focus:ring-brand-500"
+                                        placeholder="URL Facebook"
+                                        value={companyInfo.facebookUrl || ''}
+                                        onChange={e => setCompanyInfo({...companyInfo, facebookUrl: e.target.value})}
+                                    />
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <div className="p-2 bg-slate-100 rounded-lg text-slate-500"><Instagram size={18}/></div>
+                                    <input 
+                                        className="flex-1 border border-slate-300 rounded-lg p-2.5 text-sm outline-none focus:ring-2 focus:ring-brand-500"
+                                        placeholder="URL Instagram"
+                                        value={companyInfo.instagramUrl || ''}
+                                        onChange={e => setCompanyInfo({...companyInfo, instagramUrl: e.target.value})}
+                                    />
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <div className="p-2 bg-slate-100 rounded-lg text-slate-500"><Twitter size={18}/></div>
+                                    <input 
+                                        className="flex-1 border border-slate-300 rounded-lg p-2.5 text-sm outline-none focus:ring-2 focus:ring-brand-500"
+                                        placeholder="URL Twitter (X)"
+                                        value={companyInfo.twitterUrl || ''}
+                                        onChange={e => setCompanyInfo({...companyInfo, twitterUrl: e.target.value})}
+                                    />
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <div className="p-2 bg-slate-100 rounded-lg text-slate-500"><Linkedin size={18}/></div>
+                                    <input 
+                                        className="flex-1 border border-slate-300 rounded-lg p-2.5 text-sm outline-none focus:ring-2 focus:ring-brand-500"
+                                        placeholder="URL LinkedIn"
+                                        value={companyInfo.linkedinUrl || ''}
+                                        onChange={e => setCompanyInfo({...companyInfo, linkedinUrl: e.target.value})}
+                                    />
+                                </div>
                             </div>
                         </div>
                     </div>
