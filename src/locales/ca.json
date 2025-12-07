@@ -1,0 +1,48 @@
+{
+  "nav": {
+    "home": "Inici",
+    "products": "Productes",
+    "contact": "Contacte",
+    "admin": "Administració"
+  },
+  "hero": {
+    "badge": "Tecnologia Inverter 2024",
+    "title_1": "Clima perfecte,",
+    "title_2": "Estalvi real.",
+    "subtitle": "Transforma la teva llar amb les nostres solucions de climatització d'alta eficiència. Instal·lació professional, finançament a mida i les millors marques del mercat.",
+    "cta_catalog": "Veure Catàleg",
+    "cta_budget": "Demanar Pressupost"
+  },
+  "catalog": {
+    "title": "Catàleg Destacat",
+    "subtitle": "Troba l'equip ideal per a la teva llar.",
+    "filters": {
+      "type": "Tipus d'Equip",
+      "all_types": "Tots",
+      "brand": "Marca",
+      "all_brands": "Totes les marques",
+      "max_price": "Preu Màxim",
+      "clean": "Netejar filtres"
+    },
+    "no_results": "No s'han trobat resultats",
+    "no_results_desc": "Prova d'ajustar els filtres de cerca."
+  },
+  "footer": {
+    "brand_desc": "Experts en solucions de climatització eficient. Pressupostos transparents, instal·lació professional i les millors marques del mercat.",
+    "services": "Serveis",
+    "legal": "Legal",
+    "contact": "Contacte",
+    "rights": "Tots els drets reservats."
+  },
+  "services": {
+    "installation": "Instal·lació",
+    "maintenance": "Manteniment",
+    "repair": "Reparació",
+    "warranty": "Garanties"
+  },
+  "legal": {
+    "privacy": "Privacitat",
+    "cookies": "Cookies",
+    "notice": "Avís Legal"
+  }
+}

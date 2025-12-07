@@ -1,11 +1,13 @@
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Product, ClientData } from '../types';
 import { api } from '../services/api';
 import { 
   CheckCircle2, CreditCard, ChevronLeft, Save, 
   Minus, Plus, ShieldCheck, Download, Loader2, FileText 
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { getLangText } from '../i18nUtils';
 
 interface CalculatorProps {
   product: Product;
@@ -13,6 +15,8 @@ interface CalculatorProps {
 }
 
 const Calculator: React.FC<CalculatorProps> = ({ product, onBack }) => {
+  const { t, i18n } = useTranslation();
+  
   // --- State Initialization ---
   const pricing = product.pricing?.length ? product.pricing : [{ id: 'def', name: 'Estándar', price: 0 }];
   const kits = product.installationKits?.length ? product.installationKits : [{ id: 'k-def', name: 'Instalación Básica', price: 0 }];
@@ -62,39 +66,43 @@ const Calculator: React.FC<CalculatorProps> = ({ product, onBack }) => {
 
   const handleSave = async () => {
     if (!client.nombre || !client.email || !client.telefono) {
-      alert('Por favor completa los campos obligatorios (*)');
+      alert(t('calculator.error.required_fields'));
       return;
     }
 
     setStatus('loading');
 
-    let finText = "Pago al Contado";
+    // Use current language for PDF generation context if possible, 
+    // though the PDF generator currently hardcodes some Spanish.
+    let finText = t('calculator.payment.cash'); 
     if (financeIdx >= 0 && financeData[financeIdx]) {
       const f = financeData[financeIdx];
       let monthlyPayment = 0;
       let totalFinanced = 0;
+      const label = getLangText(f.label, i18n.language);
 
       // Logic for Coefficients (From PDFs) vs Commission %
       if (f.coefficient) {
           monthlyPayment = total * f.coefficient;
           totalFinanced = monthlyPayment * f.months;
-          finText = `${f.label}\nCuota: ${formatCurrency(monthlyPayment)}/mes\nTotal a Pagar: ${formatCurrency(totalFinanced)}`;
+          finText = `${label}\n${t('calculator.payment.fee')}: ${formatCurrency(monthlyPayment)}/${t('calculator.payment.month')}\n${t('calculator.payment.total_pay')}: ${formatCurrency(totalFinanced)}`;
       } else if (f.commission !== undefined) {
           totalFinanced = total * (1 + f.commission / 100);
           monthlyPayment = totalFinanced / f.months;
-          finText = `${f.label}\nCuota: ${formatCurrency(monthlyPayment)}/mes\nTotal a Pagar: ${formatCurrency(totalFinanced)} (${f.commission}%)`;
+          finText = `${label}\n${t('calculator.payment.fee')}: ${formatCurrency(monthlyPayment)}/${t('calculator.payment.month')}\n${t('calculator.payment.total_pay')}: ${formatCurrency(totalFinanced)} (${f.commission}%)`;
       }
     }
 
     const extrasArr = Object.entries(extrasQty).map(([id, qty]) => {
       const e = extrasData.find(x => x.id === id);
-      return e ? ((qty as number) > 1 ? `${e.name} (x${qty})` : e.name) : '';
+      const name = e ? getLangText(e.name, i18n.language) : '';
+      return e ? ((qty as number) > 1 ? `${name} (x${qty})` : name) : '';
     }).filter(Boolean);
 
     try {
       const res = await api.saveQuote({
         brand: product.brand,
-        model: selectedModel.name,
+        model: getLangText(selectedModel.name, i18n.language),
         price: total,
         extras: extrasArr,
         financing: finText,
@@ -112,14 +120,14 @@ const Calculator: React.FC<CalculatorProps> = ({ product, onBack }) => {
     } catch (e: any) {
       console.error(e);
       setStatus('error');
-      alert('Error al guardar: ' + e.message);
+      alert(`${t('calculator.error.save_error')}: ${e.message}`);
     }
   };
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 pb-24">
       <button onClick={onBack} className="flex items-center text-slate-500 hover:text-brand-600 font-medium mb-6 transition-colors">
-        <ChevronLeft size={20} /> Volver al catálogo
+        <ChevronLeft size={20} /> {t('calculator.back_to_catalog')}
       </button>
 
       <div className="grid xl:grid-cols-3 gap-8">
@@ -130,7 +138,7 @@ const Calculator: React.FC<CalculatorProps> = ({ product, onBack }) => {
           <section className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
             <h3 className="font-bold text-lg mb-6 flex items-center gap-3">
               <span className="bg-brand-100 text-brand-700 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold">1</span> 
-              Selecciona Potencia / Modelo
+              {t('calculator.steps.power_model')}
             </h3>
             <div className="grid md:grid-cols-2 gap-4">
               {pricing.map(m => (
@@ -139,7 +147,7 @@ const Calculator: React.FC<CalculatorProps> = ({ product, onBack }) => {
                   onClick={() => setModelId(m.id)} 
                   className={`p-4 rounded-xl border-2 text-left transition-all relative ${modelId === m.id ? 'border-brand-500 bg-brand-50' : 'border-slate-100 hover:border-slate-300'}`}
                 >
-                  <div className="font-bold text-slate-900">{m.name}</div>
+                  <div className="font-bold text-slate-900">{getLangText(m.name, i18n.language)}</div>
                   <div className="text-brand-600 font-bold mt-2 text-lg">{formatCurrency(m.price)}</div>
                   {modelId === m.id && <div className="absolute top-4 right-4 text-brand-500"><CheckCircle2 size={20}/></div>}
                 </button>
@@ -151,14 +159,14 @@ const Calculator: React.FC<CalculatorProps> = ({ product, onBack }) => {
           <section className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
             <h3 className="font-bold text-lg mb-6 flex items-center gap-3">
               <span className="bg-brand-100 text-brand-700 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold">2</span> 
-              Tipo de Instalación
+              {t('calculator.steps.installation')}
             </h3>
             <div className="space-y-3">
               {kits.map(k => (
                 <label key={k.id} className={`flex justify-between p-4 rounded-xl border-2 cursor-pointer transition-all ${kitId === k.id ? 'border-brand-500 bg-brand-50' : 'border-slate-100 hover:border-slate-300'}`}>
                   <div className="flex gap-3 items-center">
                     <input type="radio" className="accent-brand-600 w-5 h-5" checked={kitId === k.id} onChange={() => setKitId(k.id)} />
-                    <span className="font-medium text-slate-700">{k.name}</span>
+                    <span className="font-medium text-slate-700">{getLangText(k.name, i18n.language)}</span>
                   </div>
                   <span className="font-bold text-slate-900">{formatCurrency(k.price)}</span>
                 </label>
@@ -171,7 +179,7 @@ const Calculator: React.FC<CalculatorProps> = ({ product, onBack }) => {
             <section className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
               <h3 className="font-bold text-lg mb-6 flex items-center gap-3">
                 <span className="bg-brand-100 text-brand-700 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold">3</span> 
-                Extras de Instalación
+                {t('calculator.steps.extras')}
               </h3>
               <div className="grid md:grid-cols-2 gap-3 max-h-[400px] overflow-y-auto custom-scrollbar pr-2">
                 {extrasData.map(e => {
@@ -179,7 +187,7 @@ const Calculator: React.FC<CalculatorProps> = ({ product, onBack }) => {
                   return (
                     <div key={e.id} className={`flex justify-between items-center p-3 rounded-xl border-2 transition-all ${qty > 0 ? 'bg-brand-50 border-brand-500' : 'border-slate-100'}`}>
                       <div className="text-sm">
-                        <div className="font-medium text-slate-700">{e.name}</div>
+                        <div className="font-medium text-slate-700">{getLangText(e.name, i18n.language)}</div>
                         <div className="text-brand-600 font-bold">{formatCurrency(e.price)}</div>
                       </div>
                       <div className="flex items-center gap-2 bg-white rounded-lg border border-slate-200 p-1 shadow-sm">
@@ -198,12 +206,12 @@ const Calculator: React.FC<CalculatorProps> = ({ product, onBack }) => {
           <section className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
             <h3 className="font-bold text-lg mb-6 flex items-center gap-3">
               <span className="bg-brand-100 text-brand-700 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold">4</span> 
-              Opciones de Pago
+              {t('calculator.steps.payment')}
             </h3>
             <div className="space-y-3">
               <label className={`flex items-center p-4 border-2 rounded-xl cursor-pointer transition-all ${financeIdx === -1 ? 'border-brand-500 bg-brand-50' : 'border-slate-100 hover:border-slate-200'}`}>
                 <input type="radio" className="accent-brand-600 w-5 h-5 mr-3" checked={financeIdx === -1} onChange={() => setFinanceIdx(-1)} />
-                <span className="font-bold flex items-center gap-2 text-slate-800"><CreditCard size={18}/> Pago al Contado</span>
+                <span className="font-bold flex items-center gap-2 text-slate-800"><CreditCard size={18}/> {t('calculator.payment.cash')}</span>
               </label>
               {financeData.map((f, i) => {
                 let monthly = 0;
@@ -222,13 +230,13 @@ const Calculator: React.FC<CalculatorProps> = ({ product, onBack }) => {
                     <div className="flex items-center gap-3">
                       <input type="radio" className="accent-brand-600 w-5 h-5" checked={financeIdx === i} onChange={() => setFinanceIdx(i)} />
                       <div>
-                        <div className="font-bold text-slate-800">{f.label}</div>
-                        <div className="text-xs text-slate-500">Total a pagar: {formatCurrency(totalFin)}</div>
+                        <div className="font-bold text-slate-800">{getLangText(f.label, i18n.language)}</div>
+                        <div className="text-xs text-slate-500">{t('calculator.payment.total_pay')}: {formatCurrency(totalFin)}</div>
                       </div>
                     </div>
                     <div className="text-right">
                         <div className="text-brand-700 font-bold text-lg leading-none">{formatCurrency(monthly)}</div>
-                        <span className="text-xs font-medium text-slate-400">/mes</span>
+                        <span className="text-xs font-medium text-slate-400">/{t('calculator.payment.month')}</span>
                     </div>
                   </label>
                 )
@@ -246,7 +254,7 @@ const Calculator: React.FC<CalculatorProps> = ({ product, onBack }) => {
                 {product.imageUrl ? (
                     <img src={product.imageUrl} alt={product.model} className="w-full h-32 object-contain rounded-lg"/>
                 ) : (
-                    <div className="w-full h-32 bg-slate-100 rounded-lg flex items-center justify-center text-slate-300 font-bold">Sin Imagen</div>
+                    <div className="w-full h-32 bg-slate-100 rounded-lg flex items-center justify-center text-slate-300 font-bold">{t('calculator.summary.no_image')}</div>
                 )}
                 {product.brandLogoUrl && (
                     <div className="absolute top-3 left-3 w-10 h-auto opacity-90 mix-blend-multiply">
@@ -256,34 +264,34 @@ const Calculator: React.FC<CalculatorProps> = ({ product, onBack }) => {
             </div>
 
             <h3 className="text-xl font-bold mb-6 flex items-center gap-2">
-                <ShieldCheck className="text-brand-400"/> Resumen
+                <ShieldCheck className="text-brand-400"/> {t('calculator.summary.title')}
             </h3>
             
             <div className="space-y-4 mb-8 text-sm text-slate-300">
               <div className="flex justify-between pb-3 border-b border-slate-800">
-                <span className="text-slate-400">Modelo</span>
+                <span className="text-slate-400">{t('calculator.summary.model')}</span>
                 <div className="text-right">
                     <div className="text-white font-medium">{product.brand}</div>
-                    <div className="text-xs">{selectedModel.name}</div>
+                    <div className="text-xs">{getLangText(selectedModel.name, i18n.language)}</div>
                 </div>
               </div>
               <div className="flex justify-between pb-3 border-b border-slate-800">
-                <span className="text-slate-400">Instalación</span>
-                <span className="font-medium text-white">{selectedKit.name}</span>
+                <span className="text-slate-400">{t('calculator.summary.installation')}</span>
+                <span className="font-medium text-white">{getLangText(selectedKit.name, i18n.language)}</span>
               </div>
               
               {Object.keys(extrasQty).length > 0 && (
                  <div className="flex justify-between pb-3 border-b border-slate-800">
-                    <span className="text-slate-400">Extras seleccionados</span>
-                    <span className="font-medium text-white">{(Object.values(extrasQty) as number[]).reduce((a,b)=>a+b,0)} items</span>
+                    <span className="text-slate-400">{t('calculator.summary.extras_selected')}</span>
+                    <span className="font-medium text-white">{(Object.values(extrasQty) as number[]).reduce((a,b)=>a+b,0)} {t('calculator.summary.items')}</span>
                  </div>
               )}
 
               <div className="pt-4 flex justify-between items-end">
-                <span className="text-slate-400 font-medium">Total Estimado</span>
+                <span className="text-slate-400 font-medium">{t('calculator.summary.total_estimated')}</span>
                 <span className="text-4xl font-bold text-brand-400 leading-none tracking-tight">{formatCurrency(total)}</span>
               </div>
-              <p className="text-xs text-slate-500 text-right">IVA e instalación incluidos</p>
+              <p className="text-xs text-slate-500 text-right">{t('calculator.summary.taxes_included')}</p>
             </div>
             
             {/* PDF Link in Summary */}
@@ -294,7 +302,7 @@ const Calculator: React.FC<CalculatorProps> = ({ product, onBack }) => {
                     rel="noreferrer"
                     className="w-full mb-4 py-3 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl font-bold flex justify-center items-center gap-2 transition-colors text-sm"
                 >
-                    <FileText size={16}/> Ver Ficha Técnica Original
+                    <FileText size={16}/> {t('calculator.summary.view_pdf')}
                 </a>
             )}
 
@@ -304,7 +312,7 @@ const Calculator: React.FC<CalculatorProps> = ({ product, onBack }) => {
                 className="w-full py-4 bg-brand-600 hover:bg-brand-500 rounded-xl font-bold flex justify-center items-center gap-2 shadow-lg shadow-brand-900/50 transition-all active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed"
             >
                 {status === 'loading' ? <Loader2 className="animate-spin" /> : <Save size={20}/>}
-                {status === 'loading' ? 'Procesando...' : 'Guardar Presupuesto'}
+                {status === 'loading' ? t('calculator.summary.processing') : t('calculator.summary.save_button')}
             </button>
 
             {lastQuoteUrl && (
@@ -312,9 +320,9 @@ const Calculator: React.FC<CalculatorProps> = ({ product, onBack }) => {
                 <div className="flex justify-center mb-2">
                     <CheckCircle2 size={28} className="text-emerald-400"/>
                 </div>
-                <p className="text-emerald-400 font-bold mb-3">¡Presupuesto Guardado!</p>
+                <p className="text-emerald-400 font-bold mb-3">{t('calculator.summary.success_title')}</p>
                 <a href={lastQuoteUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-slate-900 text-sm font-bold py-2 px-6 rounded-full transition-colors">
-                    <Download size={16}/> Descargar PDF
+                    <Download size={16}/> {t('calculator.summary.download_pdf')}
                 </a>
               </div>
             )}
@@ -327,24 +335,24 @@ const Calculator: React.FC<CalculatorProps> = ({ product, onBack }) => {
         <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
             <div className="bg-white p-8 rounded-3xl max-w-lg w-full space-y-5 shadow-2xl animate-in zoom-in-95 duration-200">
                 <div className="flex justify-between items-center mb-2">
-                    <h3 className="font-bold text-2xl text-slate-800">Datos del Cliente</h3>
+                    <h3 className="font-bold text-2xl text-slate-800">{t('calculator.form.title')}</h3>
                 </div>
                 
                 <div className="grid grid-cols-2 gap-4">
-                    <input className="border border-slate-200 p-3 rounded-xl bg-slate-50 focus:bg-white focus:ring-2 focus:ring-brand-500 outline-none transition-all" placeholder="Nombre *" value={client.nombre} onChange={e=>setClient({...client,nombre:e.target.value})} />
-                    <input className="border border-slate-200 p-3 rounded-xl bg-slate-50 focus:bg-white focus:ring-2 focus:ring-brand-500 outline-none transition-all" placeholder="Apellidos" value={client.apellidos} onChange={e=>setClient({...client,apellidos:e.target.value})} />
+                    <input className="border border-slate-200 p-3 rounded-xl bg-slate-50 focus:bg-white focus:ring-2 focus:ring-brand-500 outline-none transition-all" placeholder={t('calculator.form.name')} value={client.nombre} onChange={e=>setClient({...client,nombre:e.target.value})} />
+                    <input className="border border-slate-200 p-3 rounded-xl bg-slate-50 focus:bg-white focus:ring-2 focus:ring-brand-500 outline-none transition-all" placeholder={t('calculator.form.surname')} value={client.apellidos} onChange={e=>setClient({...client,apellidos:e.target.value})} />
                 </div>
-                <input className="w-full border border-slate-200 p-3 rounded-xl bg-slate-50 focus:bg-white focus:ring-2 focus:ring-brand-500 outline-none transition-all" placeholder="Email *" type="email" value={client.email} onChange={e=>setClient({...client,email:e.target.value})} />
-                <input className="w-full border border-slate-200 p-3 rounded-xl bg-slate-50 focus:bg-white focus:ring-2 focus:ring-brand-500 outline-none transition-all" placeholder="Teléfono *" type="tel" value={client.telefono} onChange={e=>setClient({...client,telefono:e.target.value})} />
+                <input className="w-full border border-slate-200 p-3 rounded-xl bg-slate-50 focus:bg-white focus:ring-2 focus:ring-brand-500 outline-none transition-all" placeholder={t('calculator.form.email')} type="email" value={client.email} onChange={e=>setClient({...client,email:e.target.value})} />
+                <input className="w-full border border-slate-200 p-3 rounded-xl bg-slate-50 focus:bg-white focus:ring-2 focus:ring-brand-500 outline-none transition-all" placeholder={t('calculator.form.phone')} type="tel" value={client.telefono} onChange={e=>setClient({...client,telefono:e.target.value})} />
                 
                 <div className="grid grid-cols-2 gap-4">
-                    <input className="border border-slate-200 p-3 rounded-xl bg-slate-50 focus:bg-white focus:ring-2 focus:ring-brand-500 outline-none transition-all" placeholder="Población" value={client.poblacion} onChange={e=>setClient({...client,poblacion:e.target.value})} />
-                    <input className="border border-slate-200 p-3 rounded-xl bg-slate-50 focus:bg-white focus:ring-2 focus:ring-brand-500 outline-none transition-all" placeholder="CP" value={client.cp} onChange={e=>setClient({...client,cp:e.target.value})} />
+                    <input className="border border-slate-200 p-3 rounded-xl bg-slate-50 focus:bg-white focus:ring-2 focus:ring-brand-500 outline-none transition-all" placeholder={t('calculator.form.city')} value={client.poblacion} onChange={e=>setClient({...client,poblacion:e.target.value})} />
+                    <input className="border border-slate-200 p-3 rounded-xl bg-slate-50 focus:bg-white focus:ring-2 focus:ring-brand-500 outline-none transition-all" placeholder={t('calculator.form.zip')} value={client.cp} onChange={e=>setClient({...client,cp:e.target.value})} />
                 </div>
 
                 <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
-                    <button onClick={() => setIsModalOpen(false)} className="px-6 py-2.5 text-slate-500 font-medium hover:bg-slate-50 rounded-xl transition-colors">Cancelar</button>
-                    <button onClick={handleSave} className="px-8 py-2.5 bg-brand-600 hover:bg-brand-500 text-white rounded-xl font-bold shadow-lg shadow-brand-200 transition-colors">Enviar Presupuesto</button>
+                    <button onClick={() => setIsModalOpen(false)} className="px-6 py-2.5 text-slate-500 font-medium hover:bg-slate-50 rounded-xl transition-colors">{t('calculator.form.cancel')}</button>
+                    <button onClick={handleSave} className="px-8 py-2.5 bg-brand-600 hover:bg-brand-500 text-white rounded-xl font-bold shadow-lg shadow-brand-200 transition-colors">{t('calculator.form.submit')}</button>
                 </div>
             </div>
         </div>

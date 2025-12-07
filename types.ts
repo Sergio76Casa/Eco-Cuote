@@ -1,30 +1,32 @@
 
+export type LocalizedText = Record<string, string>; // { es: "Hola", en: "Hello" }
+
 export interface Feature {
-  title: string;
-  description: string;
+  title: string | LocalizedText;
+  description: string | LocalizedText;
   icon?: string;
 }
 
 export interface PricingOption {
   id: string;
-  name: string;
+  name: string | LocalizedText;
   price: number;
 }
 
 export interface InstallKit {
   id: string;
-  name: string;
+  name: string | LocalizedText;
   price: number;
 }
 
 export interface Extra {
   id: string;
-  name: string;
+  name: string | LocalizedText;
   price: number;
 }
 
 export interface FinancingOption {
-  label: string;
+  label: string | LocalizedText;
   months: number;
   commission?: number; // Legacy percentage based
   coefficient?: number; // PDF based (e.g., 0.087)

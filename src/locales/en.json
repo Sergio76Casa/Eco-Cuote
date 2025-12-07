@@ -1,0 +1,48 @@
+{
+  "nav": {
+    "home": "Home",
+    "products": "Products",
+    "contact": "Contact",
+    "admin": "Admin"
+  },
+  "hero": {
+    "badge": "Inverter Technology 2024",
+    "title_1": "Perfect Climate,",
+    "title_2": "Real Savings.",
+    "subtitle": "Transform your home with our high-efficiency HVAC solutions. Professional installation, custom financing, and the best brands on the market.",
+    "cta_catalog": "View Catalog",
+    "cta_budget": "Get a Quote"
+  },
+  "catalog": {
+    "title": "Featured Catalog",
+    "subtitle": "Find the ideal equipment for your home.",
+    "filters": {
+      "type": "Equipment Type",
+      "all_types": "All",
+      "brand": "Brand",
+      "all_brands": "All brands",
+      "max_price": "Max Price",
+      "clean": "Clear filters"
+    },
+    "no_results": "No results found",
+    "no_results_desc": "Try adjusting your search filters."
+  },
+  "footer": {
+    "brand_desc": "Experts in efficient HVAC solutions. Transparent quotes, professional installation, and top market brands.",
+    "services": "Services",
+    "legal": "Legal",
+    "contact": "Contact",
+    "rights": "All rights reserved."
+  },
+  "services": {
+    "installation": "Installation",
+    "maintenance": "Maintenance",
+    "repair": "Repair",
+    "warranty": "Warranty"
+  },
+  "legal": {
+    "privacy": "Privacy Policy",
+    "cookies": "Cookies Policy",
+    "notice": "Legal Notice"
+  }
+}

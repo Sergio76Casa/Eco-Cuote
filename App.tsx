@@ -1,52 +1,26 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { api } from './services/api';
 import { Product, ContactData } from './types';
 import ProductCard from './components/ProductCard';
 import Calculator from './components/Calculator';
 import Admin from './components/Admin';
-import { Settings, Lock, Mail, Phone, MapPin, Facebook, Instagram, Twitter, X, Send, Loader2, ArrowDown, ArrowRight, SlidersHorizontal, ShieldCheck, Wrench, FileText, Cookie, Menu, Scale, Hammer, ClipboardCheck } from 'lucide-react';
+import LanguageSelector from './components/LanguageSelector';
+import { useTranslation } from 'react-i18next';
+import { Settings, Lock, Mail, Phone, MapPin, Facebook, Instagram, Twitter, X, Send, Loader2, ArrowDown, SlidersHorizontal, ShieldCheck, Wrench, FileText, Cookie, Menu, Scale, Hammer, ClipboardCheck } from 'lucide-react';
 
-// Content for the informational modal (Services & Legal)
-const INFO_CONTENT: Record<string, { title: string; image: string; text: string }> = {
-    instalacion: {
-        title: "Instalación Profesional",
-        image: "https://images.unsplash.com/photo-1621905251189-08b45d6a269e?auto=format&fit=crop&q=80&w=1000",
-        text: "Nuestro equipo de técnicos certificados RITE garantiza una instalación segura, limpia y eficiente. Cumplimos con todas las normativas vigentes, asegurando el máximo rendimiento de su equipo desde el primer día. Incluimos pruebas de estanqueidad, vacío y puesta en marcha."
-    },
-    mantenimiento: {
-        title: "Mantenimiento Preventivo",
-        image: "https://images.unsplash.com/photo-1581092160562-40aa08e78837?auto=format&fit=crop&q=80&w=1000",
-        text: "Prolongue la vida útil de su equipo y mantenga la eficiencia energética con nuestros planes de mantenimiento anual. Incluye limpieza de filtros, revisión de gas refrigerante, limpieza de intercambiadores y desinfección para garantizar un aire saludable."
-    },
-    reparacion: {
-        title: "Reparación y Averías",
-        image: "https://images.unsplash.com/photo-1581094794329-cd11965d1169?auto=format&fit=crop&q=80&w=1000",
-        text: "Servicio técnico multimarca rápido y eficaz. Diagnosticamos y reparamos cualquier avería en tiempo récord. Disponemos de stock de repuestos originales para minimizar el tiempo de inactividad de su sistema de climatización."
-    },
-    garantias: {
-        title: "Garantía Total",
-        image: "https://images.unsplash.com/photo-1450101499163-c8848c66ca85?auto=format&fit=crop&q=80&w=1000",
-        text: "Ofrecemos 5 años de garantía en la instalación y gestionamos directamente la garantía del fabricante de su equipo. Su tranquilidad es nuestra prioridad; si surge algún problema, nosotros nos encargamos de todo sin costes ocultos."
-    },
-    privacidad: {
-        title: "Política de Privacidad",
-        image: "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=1000",
-        text: "En EcoQuote nos tomamos muy en serio la protección de sus datos. Cumplimos estrictamente con el RGPD. Sus datos personales solo se utilizan para gestionar su presupuesto y la instalación. Nunca cederemos su información a terceros sin su consentimiento explícito."
-    },
-    cookies: {
-        title: "Política de Cookies",
-        image: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&q=80&w=1000",
-        text: "Utilizamos cookies propias y de terceros para mejorar la experiencia de navegación y ofrecerle contenidos personalizados. Puede configurar o rechazar su uso en cualquier momento desde las opciones de su navegador."
-    },
-    avisoLegal: {
-        title: "Aviso Legal",
-        image: "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&q=80&w=1000",
-        text: "Información general para dar cumplimiento a la Ley 34/2002. Titular: EcoQuote Climatización S.L., NIF: B12345678. Domicilio: Calle Ejemplo 123, 28000 Madrid. Teléfono: +34 900 123 456. Email: info@ecoquote.com. Inscrita en el Registro Mercantil de Madrid."
-    }
+// Content for the informational modal (Only Images are hardcoded now, text comes from locales)
+const INFO_IMAGES: Record<string, string> = {
+    instalacion: "https://images.unsplash.com/photo-1621905251189-08b45d6a269e?auto=format&fit=crop&q=80&w=1000",
+    mantenimiento: "https://images.unsplash.com/photo-1581092160562-40aa08e78837?auto=format&fit=crop&q=80&w=1000",
+    reparacion: "https://images.unsplash.com/photo-1581094794329-cd11965d1169?auto=format&fit=crop&q=80&w=1000",
+    garantias: "https://images.unsplash.com/photo-1450101499163-c8848c66ca85?auto=format&fit=crop&q=80&w=1000",
+    privacidad: "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=1000",
+    cookies: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&q=80&w=1000",
+    avisoLegal: "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&q=80&w=1000"
 };
 
 const App: React.FC = () => {
+  const { t } = useTranslation();
   const [view, setView] = useState<'home' | 'calculator' | 'admin'>('home');
   const [products, setProducts] = useState<Product[]>([]);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -72,11 +46,19 @@ const App: React.FC = () => {
   const [contactErrors, setContactErrors] = useState<Partial<ContactData>>({});
   const [contactStatus, setContactStatus] = useState<'idle'|'sending'|'success'|'error'>('idle');
 
-  // Info Modal (Services & Legal)
-  const [infoModal, setInfoModal] = useState<{ title: string; image: string; text: string } | null>(null);
+  // Info Modal (Services & Legal) - Stores KEY of active info
+  const [activeInfoKey, setActiveInfoKey] = useState<string | null>(null);
+  const [companyInfo, setCompanyInfo] = useState({ address: '', phone: '', email: '' });
 
   useEffect(() => {
-    loadCatalog();
+    if (view === 'home') {
+      loadCatalog();
+    }
+  }, [view]);
+
+  // Load company info
+  useEffect(() => {
+    api.getCompanyInfo().then(info => setCompanyInfo(info));
   }, []);
 
   const loadCatalog = async () => {
@@ -151,20 +133,20 @@ const App: React.FC = () => {
     let isValid = true;
 
     if (!contactForm.nombre.trim()) {
-        errors.nombre = 'El nombre es obligatorio';
+        errors.nombre = t('validation.name_required');
         isValid = false;
     }
 
     if (!contactForm.email.trim()) {
-        errors.email = 'El email es obligatorio';
+        errors.email = t('validation.email_required');
         isValid = false;
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactForm.email)) {
-        errors.email = 'Introduce un email válido';
+        errors.email = t('validation.email_invalid');
         isValid = false;
     }
 
     if (!contactForm.mensaje.trim()) {
-        errors.mensaje = 'Por favor, escribe tu consulta';
+        errors.mensaje = t('validation.message_required');
         isValid = false;
     }
 
@@ -187,14 +169,12 @@ const App: React.FC = () => {
         }, 2500);
     } catch(e) {
         setContactStatus('error');
-        alert("Error al enviar mensaje, por favor inténtalo de nuevo.");
+        alert(t('validation.contact_error'));
     }
   };
 
   const openInfo = (key: string) => {
-      if (INFO_CONTENT[key]) {
-          setInfoModal(INFO_CONTENT[key]);
-      }
+      setActiveInfoKey(key);
   };
 
   if (view === 'admin') {
@@ -235,7 +215,7 @@ const App: React.FC = () => {
                     }}
                     className={`font-semibold px-3 py-2 rounded-lg transition-colors ${view === 'home' && !selectedProduct ? 'text-brand-600 bg-brand-50' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100'}`}
                 >
-                    Inicio
+                    {t('nav.home')}
                 </button>
                 <button 
                     onClick={() => { 
@@ -245,21 +225,23 @@ const App: React.FC = () => {
                     }}
                     className="font-semibold text-slate-500 hover:text-slate-900 hover:bg-slate-100 px-3 py-2 rounded-lg transition-colors"
                 >
-                    Productos
+                    {t('nav.products')}
                 </button>
                 <button 
                     onClick={() => setShowContact(true)}
                     className="font-semibold text-slate-500 hover:text-slate-900 hover:bg-slate-100 px-3 py-2 rounded-lg transition-colors"
                 >
-                    Contacto
+                    {t('nav.contact')}
                 </button>
                 
                 <div className="w-px h-6 bg-slate-200 mx-2"></div>
+                
+                <LanguageSelector />
 
                 <button 
                     onClick={() => setShowAdminLogin(true)}
                     className="p-2.5 text-slate-400 hover:text-brand-600 hover:bg-brand-50 rounded-xl transition-all"
-                    title="Administración"
+                    title={t('nav.admin')}
                 >
                     <Settings size={20} />
                 </button>
@@ -285,7 +267,7 @@ const App: React.FC = () => {
                         }}
                         className="text-left font-bold text-lg text-slate-700 p-3 hover:bg-slate-50 rounded-xl"
                     >
-                        Inicio
+                        {t('nav.home')}
                     </button>
                     <button 
                         onClick={() => { 
@@ -296,7 +278,7 @@ const App: React.FC = () => {
                         }}
                         className="text-left font-bold text-lg text-slate-700 p-3 hover:bg-slate-50 rounded-xl"
                     >
-                        Productos
+                        {t('nav.products')}
                     </button>
                     <button 
                         onClick={() => {
@@ -305,8 +287,11 @@ const App: React.FC = () => {
                         }}
                         className="text-left font-bold text-lg text-slate-700 p-3 hover:bg-slate-50 rounded-xl"
                     >
-                        Contacto
+                        {t('nav.contact')}
                     </button>
+                    <div className="flex justify-start p-3">
+                         <LanguageSelector />
+                    </div>
                     <div className="h-px bg-slate-100 my-2"></div>
                     <button 
                         onClick={() => {
@@ -315,7 +300,7 @@ const App: React.FC = () => {
                         }}
                         className="text-left font-bold text-lg text-brand-600 p-3 hover:bg-brand-50 rounded-xl flex items-center gap-2"
                     >
-                        <Settings size={20}/> Administración
+                        <Settings size={20}/> {t('nav.admin')}
                     </button>
                 </div>
             )}
@@ -348,27 +333,27 @@ const App: React.FC = () => {
                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-400 opacity-75"></span>
                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-brand-500"></span>
                                  </span>
-                                 Tecnología Inverter 2024
+                                 {t('hero.badge')}
                             </div>
                             <h1 className="text-4xl md:text-6xl font-black text-white mb-6 leading-tight tracking-tight drop-shadow-md">
-                                Clima perfecto,<br/>
-                                <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-300 to-brand-500">Ahorro real.</span>
+                                {t('hero.title_1')}<br/>
+                                <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-300 to-brand-500">{t('hero.title_2')}</span>
                             </h1>
                             <p className="text-lg text-slate-200 mb-8 leading-relaxed max-w-lg drop-shadow-sm font-medium">
-                                Transforma tu hogar con nuestras soluciones de climatización de alta eficiencia. Instalación profesional, financiación a medida y las mejores marcas del mercado.
+                                {t('hero.subtitle')}
                             </p>
                             <div className="flex flex-col sm:flex-row gap-4">
                                 <button 
                                     onClick={() => document.getElementById('catalogo')?.scrollIntoView({ behavior: 'smooth' })}
                                     className="px-8 py-4 bg-brand-600 hover:bg-brand-500 text-white rounded-xl font-bold shadow-lg shadow-brand-900/20 transition-all flex items-center justify-center gap-2 group border border-transparent"
                                 >
-                                    Ver Catálogo <ArrowDown size={18} className="group-hover:translate-y-1 transition-transform"/>
+                                    {t('hero.cta_catalog')} <ArrowDown size={18} className="group-hover:translate-y-1 transition-transform"/>
                                 </button>
                                 <button 
                                     onClick={() => setShowContact(true)}
                                     className="px-8 py-4 bg-white/10 hover:bg-white/20 text-white border border-white/30 rounded-xl font-bold backdrop-blur-md transition-all flex items-center justify-center gap-2"
                                 >
-                                    Pedir Presupuesto
+                                    {t('hero.cta_budget')}
                                 </button>
                             </div>
                         </div>
@@ -379,8 +364,8 @@ const App: React.FC = () => {
                 <div id="catalogo" className="max-w-7xl mx-auto px-4 sm:px-6 pb-24">
                     <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4">
                         <div>
-                            <h2 className="text-3xl font-black text-slate-900 tracking-tight">Catálogo Destacado</h2>
-                            <p className="text-slate-500 mt-2">Encuentra el equipo ideal para tu hogar.</p>
+                            <h2 className="text-3xl font-black text-slate-900 tracking-tight">{t('catalog.title')}</h2>
+                            <p className="text-slate-500 mt-2">{t('catalog.subtitle')}</p>
                         </div>
                     </div>
 
@@ -391,7 +376,7 @@ const App: React.FC = () => {
                             {/* Filter: Type */}
                             <div className="flex-1">
                                 <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
-                                    <SlidersHorizontal size={14}/> Tipo de Equipo
+                                    <SlidersHorizontal size={14}/> {t('catalog.filters.type')}
                                 </label>
                                 <div className="flex flex-wrap gap-2">
                                     {['all', 'Aire Acondicionado', 'Caldera', 'Termo Eléctrico'].map(type => (
@@ -404,7 +389,7 @@ const App: React.FC = () => {
                                                 : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300 hover:bg-slate-50'
                                             }`}
                                         >
-                                            {type === 'all' ? 'Todos' : type}
+                                            {type === 'all' ? t('catalog.filters.all_types') : type}
                                         </button>
                                     ))}
                                 </div>
@@ -415,14 +400,14 @@ const App: React.FC = () => {
                             {/* Filter: Brand */}
                             <div className="min-w-[200px]">
                                 <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">
-                                    Marca
+                                    {t('catalog.filters.brand')}
                                 </label>
                                 <select 
                                     value={filterBrand} 
                                     onChange={(e) => setFilterBrand(e.target.value)}
                                     className="w-full bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-xl focus:ring-brand-500 focus:border-brand-500 block p-3 outline-none cursor-pointer hover:bg-white transition-colors"
                                 >
-                                    <option value="all">Todas las marcas</option>
+                                    <option value="all">{t('catalog.filters.all_brands')}</option>
                                     {uniqueBrands.map(b => (
                                         <option key={b} value={b}>{b}</option>
                                     ))}
@@ -434,7 +419,7 @@ const App: React.FC = () => {
                             {/* Filter: Price */}
                             <div className="min-w-[250px]">
                                 <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 flex justify-between">
-                                    <span>Precio Máximo</span>
+                                    <span>{t('catalog.filters.max_price')}</span>
                                     <span className="text-brand-600">{filterPrice} €</span>
                                 </label>
                                 <input 
@@ -476,13 +461,13 @@ const App: React.FC = () => {
                                     <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-slate-100 mb-4">
                                         <SlidersHorizontal className="text-slate-400" size={32}/>
                                     </div>
-                                    <h3 className="text-xl font-bold text-slate-700 mb-2">No se encontraron resultados</h3>
-                                    <p className="text-slate-500 mb-6">Prueba a ajustar los filtros de búsqueda.</p>
+                                    <h3 className="text-xl font-bold text-slate-700 mb-2">{t('catalog.no_results')}</h3>
+                                    <p className="text-slate-500 mb-6">{t('catalog.no_results_desc')}</p>
                                     <button 
                                         onClick={() => { setFilterType('all'); setFilterBrand('all'); setFilterPrice(maxPriceAvailable); }}
                                         className="text-brand-600 font-bold hover:underline"
                                     >
-                                        Limpiar filtros
+                                        {t('catalog.filters.clean')}
                                     </button>
                                 </div>
                             )}
@@ -510,7 +495,7 @@ const App: React.FC = () => {
                         EcoQuote
                     </div>
                     <p className="text-slate-400 text-sm leading-relaxed">
-                        Expertos en soluciones de climatización eficiente. Presupuestos transparentes, instalación profesional y las mejores marcas del mercado.
+                        {t('footer.brand_desc')}
                     </p>
                     <div className="flex gap-4 pt-2">
                         <a href="#" className="p-2 bg-slate-800 rounded-lg hover:bg-brand-600 hover:text-white transition-colors"><Facebook size={18}/></a>
@@ -521,47 +506,47 @@ const App: React.FC = () => {
 
                 {/* Servicios */}
                 <div>
-                    <h4 className="text-white font-bold text-lg mb-6">Servicios</h4>
+                    <h4 className="text-white font-bold text-lg mb-6">{t('footer.services')}</h4>
                     <ul className="space-y-3">
-                        <li><button onClick={() => openInfo('instalacion')} className="hover:text-brand-400 transition-colors flex items-center gap-2"><Hammer size={14}/> Instalación</button></li>
-                        <li><button onClick={() => openInfo('mantenimiento')} className="hover:text-brand-400 transition-colors flex items-center gap-2"><ClipboardCheck size={14}/> Mantenimiento</button></li>
-                        <li><button onClick={() => openInfo('reparacion')} className="hover:text-brand-400 transition-colors flex items-center gap-2"><Wrench size={14}/> Reparación</button></li>
-                        <li><button onClick={() => openInfo('garantias')} className="hover:text-brand-400 transition-colors flex items-center gap-2"><ShieldCheck size={14}/> Garantías</button></li>
+                        <li><button onClick={() => openInfo('instalacion')} className="hover:text-brand-400 transition-colors flex items-center gap-2"><Hammer size={14}/> {t('services.installation')}</button></li>
+                        <li><button onClick={() => openInfo('mantenimiento')} className="hover:text-brand-400 transition-colors flex items-center gap-2"><ClipboardCheck size={14}/> {t('services.maintenance')}</button></li>
+                        <li><button onClick={() => openInfo('reparacion')} className="hover:text-brand-400 transition-colors flex items-center gap-2"><Wrench size={14}/> {t('services.repair')}</button></li>
+                        <li><button onClick={() => openInfo('garantias')} className="hover:text-brand-400 transition-colors flex items-center gap-2"><ShieldCheck size={14}/> {t('services.warranty')}</button></li>
                     </ul>
                 </div>
 
                 {/* Legal */}
                 <div>
-                    <h4 className="text-white font-bold text-lg mb-6">Legal</h4>
+                    <h4 className="text-white font-bold text-lg mb-6">{t('footer.legal')}</h4>
                     <ul className="space-y-3">
-                         <li><button onClick={() => openInfo('privacidad')} className="hover:text-brand-400 transition-colors flex items-center gap-2"><FileText size={14}/> Privacidad</button></li>
-                         <li><button onClick={() => openInfo('cookies')} className="hover:text-brand-400 transition-colors flex items-center gap-2"><Cookie size={14}/> Cookies</button></li>
-                         <li><button onClick={() => openInfo('avisoLegal')} className="hover:text-brand-400 transition-colors flex items-center gap-2"><Scale size={14}/> Aviso Legal</button></li>
+                         <li><button onClick={() => openInfo('privacidad')} className="hover:text-brand-400 transition-colors flex items-center gap-2"><FileText size={14}/> {t('legal.privacy')}</button></li>
+                         <li><button onClick={() => openInfo('cookies')} className="hover:text-brand-400 transition-colors flex items-center gap-2"><Cookie size={14}/> {t('legal.cookies')}</button></li>
+                         <li><button onClick={() => openInfo('avisoLegal')} className="hover:text-brand-400 transition-colors flex items-center gap-2"><Scale size={14}/> {t('legal.notice')}</button></li>
                     </ul>
                 </div>
 
                 {/* Contact Info */}
                 <div>
-                    <h4 className="text-white font-bold text-lg mb-6">Contacto</h4>
+                    <h4 className="text-white font-bold text-lg mb-6">{t('footer.contact')}</h4>
                     <ul className="space-y-4">
                         <li className="flex gap-3 items-start group">
                             <MapPin className="text-brand-500 shrink-0 mt-1 group-hover:text-brand-400 transition-colors" size={18}/>
-                            <span>Calle Ejemplo 123, Polígono Industrial<br/>28000 Madrid, España</span>
+                            <span>{companyInfo.address}</span>
                         </li>
                         <li className="flex gap-3 items-center group">
                             <Phone className="text-brand-500 shrink-0 group-hover:text-brand-400 transition-colors" size={18}/>
-                            <span>+34 900 123 456</span>
+                            <span>{companyInfo.phone}</span>
                         </li>
                         <li className="flex gap-3 items-center group">
                             <Mail className="text-brand-500 shrink-0 group-hover:text-brand-400 transition-colors" size={18}/>
-                            <span>info@ecoquote.com</span>
+                            <span>{companyInfo.email}</span>
                         </li>
                     </ul>
                 </div>
             </div>
 
             <div className="border-t border-slate-800 pt-8 mt-12 text-center">
-                <p className="text-xs text-slate-500">© {new Date().getFullYear()} EcoQuote Climatización S.L. Todos los derechos reservados.</p>
+                <p className="text-xs text-slate-500">© {new Date().getFullYear()} EcoQuote Climatización S.L. {t('footer.rights')}</p>
             </div>
         </div>
       </footer>
@@ -578,11 +563,11 @@ const App: React.FC = () => {
                         <Lock className="text-slate-500" size={32} />
                     </div>
                 </div>
-                <h3 className="text-center font-bold text-xl mb-6">Acceso Administrador</h3>
+                <h3 className="text-center font-bold text-xl mb-6">{t('admin_login.title')}</h3>
                 <input 
                     type="password" 
                     className={`w-full border-2 p-3 rounded-xl outline-none mb-4 transition-colors ${authError ? 'border-red-300 bg-red-50' : 'border-slate-200 focus:border-brand-500'}`}
-                    placeholder="Contraseña"
+                    placeholder={t('admin_login.placeholder')}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleAdminLogin()}
@@ -591,7 +576,7 @@ const App: React.FC = () => {
                     onClick={handleAdminLogin}
                     className="w-full bg-brand-600 hover:bg-brand-500 text-white font-bold py-3 rounded-xl transition-colors mb-3"
                 >
-                    Entrar
+                    {t('admin_login.enter')}
                 </button>
             </div>
         </div>
@@ -602,7 +587,7 @@ const App: React.FC = () => {
         <div className="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in">
              <div className="bg-white p-8 rounded-3xl w-full max-w-md shadow-2xl animate-in zoom-in-95">
                 <div className="flex justify-between items-center mb-6">
-                    <h3 className="font-bold text-2xl">Contactar</h3>
+                    <h3 className="font-bold text-2xl">{t('validation.contact_title')}</h3>
                     <button onClick={() => { setShowContact(false); setContactErrors({}); }}><X className="text-slate-400 hover:text-slate-600"/></button>
                 </div>
 
@@ -611,26 +596,26 @@ const App: React.FC = () => {
                         <div className="bg-green-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-green-600 animate-in zoom-in spin-in-90 duration-300">
                             <Send size={32}/>
                         </div>
-                        <h4 className="text-xl font-bold text-green-700 mb-2">¡Mensaje Enviado!</h4>
-                        <p className="text-slate-500">Nos pondremos en contacto contigo pronto.</p>
+                        <h4 className="text-xl font-bold text-green-700 mb-2">{t('validation.contact_success_title')}</h4>
+                        <p className="text-slate-500">{t('validation.contact_success_desc')}</p>
                     </div>
                 ) : (
                     <div className="space-y-4">
                         <div>
-                            <label className="block text-sm font-bold text-slate-700 mb-1">Nombre</label>
+                            <label className="block text-sm font-bold text-slate-700 mb-1">{t('validation.field_name')}</label>
                             <input 
                                 className={`w-full border p-3 rounded-xl bg-slate-50 focus:bg-white focus:ring-2 outline-none transition-colors ${contactErrors.nombre ? 'border-red-300 focus:ring-red-200' : 'border-slate-200 focus:ring-brand-500'}`}
-                                placeholder="Tu nombre"
+                                placeholder={t('validation.field_name')}
                                 value={contactForm.nombre}
                                 onChange={e => { setContactForm({...contactForm, nombre: e.target.value}); if(contactErrors.nombre) setContactErrors({...contactErrors, nombre: undefined}); }}
                             />
                             {contactErrors.nombre && <p className="text-red-500 text-xs mt-1 font-medium">{contactErrors.nombre}</p>}
                         </div>
                         <div>
-                            <label className="block text-sm font-bold text-slate-700 mb-1">Email</label>
+                            <label className="block text-sm font-bold text-slate-700 mb-1">{t('validation.field_email')}</label>
                             <input 
                                 className={`w-full border p-3 rounded-xl bg-slate-50 focus:bg-white focus:ring-2 outline-none transition-colors ${contactErrors.email ? 'border-red-300 focus:ring-red-200' : 'border-slate-200 focus:ring-brand-500'}`}
-                                placeholder="tu@email.com"
+                                placeholder="email@example.com"
                                 type="email"
                                 value={contactForm.email}
                                 onChange={e => { setContactForm({...contactForm, email: e.target.value}); if(contactErrors.email) setContactErrors({...contactErrors, email: undefined}); }}
@@ -638,10 +623,10 @@ const App: React.FC = () => {
                             {contactErrors.email && <p className="text-red-500 text-xs mt-1 font-medium">{contactErrors.email}</p>}
                         </div>
                         <div>
-                            <label className="block text-sm font-bold text-slate-700 mb-1">Consulta</label>
+                            <label className="block text-sm font-bold text-slate-700 mb-1">{t('validation.field_message')}</label>
                             <textarea 
                                 className={`w-full border p-3 rounded-xl bg-slate-50 focus:bg-white focus:ring-2 outline-none h-32 resize-none transition-colors ${contactErrors.mensaje ? 'border-red-300 focus:ring-red-200' : 'border-slate-200 focus:ring-brand-500'}`}
-                                placeholder="¿En qué podemos ayudarte?"
+                                placeholder="..."
                                 value={contactForm.mensaje}
                                 onChange={e => { setContactForm({...contactForm, mensaje: e.target.value}); if(contactErrors.mensaje) setContactErrors({...contactErrors, mensaje: undefined}); }}
                             />
@@ -653,7 +638,7 @@ const App: React.FC = () => {
                             className="w-full bg-brand-600 hover:bg-brand-500 text-white font-bold py-3 rounded-xl transition-colors mt-2 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
                         >
                             {contactStatus === 'sending' ? <Loader2 className="animate-spin"/> : <Send size={18}/>}
-                            {contactStatus === 'sending' ? 'Enviando...' : 'Enviar Mensaje'}
+                            {contactStatus === 'sending' ? t('validation.sending') : t('validation.send_button')}
                         </button>
                     </div>
                 )}
@@ -662,26 +647,26 @@ const App: React.FC = () => {
       )}
 
       {/* Info Modal (Services & Legal) */}
-      {infoModal && (
+      {activeInfoKey && (
         <div className="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in">
              <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden animate-in zoom-in-95 flex flex-col max-h-[90vh]">
                 <div className="relative h-48 bg-slate-200 shrink-0">
-                    <img src={infoModal.image} alt={infoModal.title} className="w-full h-full object-cover"/>
+                    <img src={INFO_IMAGES[activeInfoKey]} alt={t(`info.${activeInfoKey}.title`)} className="w-full h-full object-cover"/>
                     <button 
-                        onClick={() => setInfoModal(null)} 
+                        onClick={() => setActiveInfoKey(null)} 
                         className="absolute top-4 right-4 bg-white/20 hover:bg-white/40 backdrop-blur-md text-white p-2 rounded-full transition-colors"
                     >
                         <X size={20}/>
                     </button>
                 </div>
                 <div className="p-8 overflow-y-auto custom-scrollbar">
-                    <h3 className="font-bold text-2xl mb-4 text-slate-900">{infoModal.title}</h3>
-                    <p className="text-slate-600 leading-relaxed text-lg">{infoModal.text}</p>
+                    <h3 className="font-bold text-2xl mb-4 text-slate-900">{t(`info.${activeInfoKey}.title`)}</h3>
+                    <p className="text-slate-600 leading-relaxed text-lg">{t(`info.${activeInfoKey}.text`)}</p>
                     <button 
-                        onClick={() => setInfoModal(null)} 
+                        onClick={() => setActiveInfoKey(null)} 
                         className="w-full mt-8 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold py-3 rounded-xl transition-colors"
                     >
-                        Cerrar
+                        {t('calculator.form.cancel')}
                     </button>
                 </div>
              </div>

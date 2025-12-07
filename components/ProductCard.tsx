@@ -1,7 +1,9 @@
 
 import React, { useState } from 'react';
 import { Product } from '../types';
-import { ArrowRight, Star, Wind, Zap, Share2, Copy, Check, X, FileText, Eye, LayoutList, ChevronRight } from 'lucide-react';
+import { ArrowRight, Wind, Zap, Share2, Copy, Check, X, FileText, Eye, LayoutList, ChevronRight } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { getLangText } from '../i18nUtils';
 
 interface ProductCardProps {
   product: Product;
@@ -9,6 +11,7 @@ interface ProductCardProps {
 }
 
 const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) => {
+  const { t, i18n } = useTranslation();
   const [showShareModal, setShowShareModal] = useState(false);
   const [showSpecsModal, setShowSpecsModal] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -81,7 +84,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) => {
                 <button 
                     onClick={handleShareClick}
                     className="bg-white hover:bg-brand-50 text-slate-400 hover:text-brand-600 p-2 rounded-full shadow-sm border border-slate-100 transition-all"
-                    title="Compartir"
+                    title={t('product.share')}
                 >
                     <Share2 size={18} />
                 </button>
@@ -89,7 +92,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) => {
                     <button 
                         onClick={handlePdfClick}
                         className="bg-white hover:bg-red-50 text-slate-400 hover:text-red-500 p-2 rounded-full shadow-sm border border-slate-100 transition-all"
-                        title="Ficha Técnica PDF"
+                        title={t('product.datasheet')}
                     >
                         <FileText size={18} />
                     </button>
@@ -97,7 +100,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) => {
                  <button 
                     onClick={handleSpecsClick}
                     className="bg-white hover:bg-blue-50 text-slate-400 hover:text-blue-600 p-2 rounded-full shadow-sm border border-slate-100 transition-all"
-                    title="Ver Características Completas"
+                    title={t('product.view_specs')}
                 >
                     <Eye size={18} />
                 </button>
@@ -121,7 +124,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) => {
                 {product.features.slice(0, 3).map((f, idx) => (
                     <div key={idx} className="flex items-center gap-2 text-sm text-slate-600">
                         <Check size={14} className="text-brand-400 shrink-0" />
-                        <span className="truncate">{f.title}</span>
+                        <span className="truncate">{getLangText(f.title, i18n.language)}</span>
                     </div>
                 ))}
                 {product.features.length > 3 && (
@@ -129,14 +132,14 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) => {
                         onClick={handleSpecsClick}
                         className="text-xs font-bold text-brand-600 hover:text-brand-700 cursor-pointer pl-6 pt-1 flex items-center gap-1"
                     >
-                        + {product.features.length - 3} características más <ArrowRight size={10}/>
+                        + {product.features.length - 3} {t('product.more_features')} <ArrowRight size={10}/>
                     </div>
                 )}
             </div>
 
             <div className="flex items-end justify-between border-t border-slate-100 pt-4 mt-auto">
                 <div>
-                    <p className="text-xs text-slate-400 mb-0.5 font-medium">Desde</p>
+                    <p className="text-xs text-slate-400 mb-0.5 font-medium">{t('product.from')}</p>
                     <p className="text-2xl font-bold text-brand-600">{basePrice.toLocaleString('es-ES')} €</p>
                 </div>
                 <div className="bg-brand-600 group-hover:bg-brand-700 text-white p-3 rounded-xl transition-all shadow-lg shadow-brand-200 group-hover:shadow-brand-300 group-hover:scale-105">
@@ -154,7 +157,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) => {
                     onClick={(e) => e.stopPropagation()}
                 >
                     <div className="flex justify-between items-center mb-4">
-                        <h3 className="font-bold text-lg text-slate-800">Compartir Producto</h3>
+                        <h3 className="font-bold text-lg text-slate-800">{t('product.share_title')}</h3>
                         <button onClick={() => setShowShareModal(false)} className="text-slate-400 hover:text-slate-600">
                             <X size={20} />
                         </button>
@@ -184,12 +187,12 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) => {
                         <button 
                             onClick={handleCopy}
                             className={`absolute top-1 right-1 p-2 rounded-lg transition-colors ${copied ? 'bg-green-100 text-green-600' : 'hover:bg-slate-200 text-slate-500'}`}
-                            title="Copiar enlace"
+                            title={t('product.copy_link')}
                         >
                             {copied ? <Check size={18} /> : <Copy size={18} />}
                         </button>
                     </div>
-                    {copied && <p className="text-xs text-green-600 font-bold mt-2 text-center">¡Enlace copiado al portapapeles!</p>}
+                    {copied && <p className="text-xs text-green-600 font-bold mt-2 text-center">{t('product.link_copied')}</p>}
                 </div>
             </div>
         )}
@@ -229,7 +232,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) => {
                     <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
                         <div className="mb-6">
                             <h4 className="font-bold text-lg text-slate-800 flex items-center gap-2 mb-4">
-                                <LayoutList className="text-brand-500" size={20}/> Especificaciones Técnicas
+                                <LayoutList className="text-brand-500" size={20}/> {t('product.specs_title')}
                             </h4>
                             
                             {product.rawContext && (
@@ -245,8 +248,8 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) => {
                                             <Check size={12} strokeWidth={3}/>
                                         </div>
                                         <div>
-                                            <div className="font-bold text-slate-800 text-sm">{feature.title}</div>
-                                            <div className="text-xs text-slate-500 mt-0.5 leading-snug">{feature.description}</div>
+                                            <div className="font-bold text-slate-800 text-sm">{getLangText(feature.title, i18n.language)}</div>
+                                            <div className="text-xs text-slate-500 mt-0.5 leading-snug">{getLangText(feature.description, i18n.language)}</div>
                                         </div>
                                     </div>
                                 ))}
@@ -255,11 +258,11 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) => {
 
                         {product.pricing.length > 0 && (
                              <div className="mb-4">
-                                <h4 className="font-bold text-sm text-slate-400 uppercase tracking-wider mb-3">Variantes Disponibles</h4>
+                                <h4 className="font-bold text-sm text-slate-400 uppercase tracking-wider mb-3">{t('product.variants_title')}</h4>
                                 <div className="flex flex-wrap gap-2">
                                     {product.pricing.map(p => (
                                         <span key={p.id} className="px-3 py-1.5 bg-slate-100 rounded-lg text-sm text-slate-700 font-medium border border-slate-200">
-                                            {p.name}: <span className="font-bold text-brand-600">{p.price} €</span>
+                                            {getLangText(p.name, i18n.language)}: <span className="font-bold text-brand-600">{p.price} €</span>
                                         </span>
                                     ))}
                                 </div>
@@ -270,14 +273,14 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) => {
                     {/* Footer */}
                     <div className="p-5 border-t border-slate-100 bg-white flex justify-between items-center">
                         <div>
-                            <div className="text-xs text-slate-500 font-medium">Precio base</div>
+                            <div className="text-xs text-slate-500 font-medium">{t('product.base_price')}</div>
                             <div className="text-2xl font-black text-brand-600">{basePrice.toLocaleString('es-ES')} €</div>
                         </div>
                         <button 
                             onClick={() => { setShowSpecsModal(false); onSelect(product); }}
                             className="bg-brand-600 hover:bg-brand-700 text-white px-6 py-3 rounded-xl font-bold shadow-lg shadow-brand-200 flex items-center gap-2 transition-all hover:scale-105"
                         >
-                            Configurar Presupuesto <ChevronRight size={18}/>
+                            {t('product.configure')} <ChevronRight size={18}/>
                         </button>
                     </div>
                 </div>
