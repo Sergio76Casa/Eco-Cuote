@@ -8,6 +8,7 @@ import Admin from './components/Admin';
 import LanguageSelector from './components/LanguageSelector';
 import { useTranslation } from 'react-i18next';
 import { Settings, Lock, Mail, Phone, MapPin, Facebook, Instagram, Twitter, X, Send, Loader2, ArrowDown, SlidersHorizontal, ShieldCheck, Wrench, FileText, Cookie, Menu, Scale, Hammer, ClipboardCheck } from 'lucide-react';
+import { getLangText } from './i18nUtils';
 
 // Content for the informational modal (Only Images are hardcoded now, text comes from locales)
 const INFO_IMAGES: Record<string, string> = {
@@ -517,6 +518,14 @@ const App: React.FC = () => {
                         <a href="#" className="p-2 bg-slate-800 rounded-lg hover:bg-brand-600 hover:text-white transition-colors"><Instagram size={18}/></a>
                         <a href="#" className="p-2 bg-slate-800 rounded-lg hover:bg-brand-600 hover:text-white transition-colors"><Twitter size={18}/></a>
                     </div>
+                    
+                    {/* Partner Logo / Certification */}
+                    {companyInfo.partnerLogoUrl && (
+                        <div className="mt-6 pt-6 border-t border-slate-800">
+                            <p className="text-[10px] uppercase font-bold text-slate-500 mb-3 tracking-widest">Partner / Certificado</p>
+                            <img src={companyInfo.partnerLogoUrl} alt="Partner" className="h-8 w-auto opacity-70 hover:opacity-100 transition-opacity grayscale hover:grayscale-0" />
+                        </div>
+                    )}
                 </div>
 
                 {/* Servicios */}

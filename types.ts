@@ -97,4 +97,5 @@ export interface CompanyInfo {
   brandName?: string; // e.g. "EcoQuote"
   companyDescription?: string;
   showLogo?: boolean; // true = show img, false = show text
+  partnerLogoUrl?: string; // Logo for footer (Endesa, RITE, etc)
 }

@@ -1,3 +1,4 @@
+
 import { Product, SavedQuote, QuotePayload, ContactData, CompanyInfo } from '../types';
 import { createClient } from '@supabase/supabase-js';
 import { jsPDF } from 'jspdf';
@@ -112,27 +113,59 @@ class AppApi {
         const ai = new GoogleGenAI({ apiKey });
         
         // 3. Define Prompt
-        const prompt = `Eres un experto en climatización. Analiza el PDF adjunto y extrae los datos técnicos y comerciales en formato JSON estrictamente válido.
+        const prompt = `Eres un experto en climatización y traducción técnica. Analiza el PDF adjunto y extrae los datos.
         
+        IMPORTANTE: Para todos los campos de texto visibles al usuario (nombre, título, descripción, etiquetas), DEBES generar un objeto con traducciones en 4 idiomas: Español (es), Inglés (en), Catalán (ca) y Francés (fr).
+
         Estructura JSON requerida:
         {
-            "brand": "Marca (ej: Daikin, Mitsubishi)", 
-            "model": "Modelo exacto", 
+            "brand": "Marca (Texto simple)", 
+            "model": "Modelo (Texto simple)", 
             "type": "Tipo (Aire Acondicionado, Caldera, Termo Eléctrico)",
-            "features": [{"title": "Característica corta", "description": "Descripción breve"}],
-            "pricing": [{"id": "p1", "name": "Nombre variante", "price": 0}],
-            "installationKits": [{"id": "k1", "name": "Kit Básico", "price": 0}],
-            "extras": [{"id": "e1", "name": "Extra", "price": 0}],
-            "financing": [{"label": "12 Meses", "months": 12, "commission": 0, "coefficient": 0}],
-            "rawContext": "Resumen breve de 1 linea"
+            "features": [
+                {
+                    "title": { "es": "...", "en": "...", "ca": "...", "fr": "..." }, 
+                    "description": { "es": "...", "en": "...", "ca": "...", "fr": "..." }
+                }
+            ],
+            "pricing": [
+                {
+                    "id": "p1", 
+                    "name": { "es": "Modelo Base", "en": "Base Model", "ca": "Model Base", "fr": "Modèle de base" }, 
+                    "price": 0
+                }
+            ],
+            "installationKits": [
+                {
+                    "id": "k1", 
+                    "name": { "es": "Instalación Básica", "en": "Basic Installation", "ca": "Instal·lació Bàsica", "fr": "Installation de base" }, 
+                    "price": 0
+                }
+            ],
+            "extras": [
+                {
+                    "id": "e1", 
+                    "name": { "es": "Soportes", "en": "Brackets", "ca": "Suports", "fr": "Supports" }, 
+                    "price": 0
+                }
+            ],
+            "financing": [
+                {
+                    "label": { "es": "12 Meses", "en": "12 Months", "ca": "12 Mesos", "fr": "12 Mois" }, 
+                    "months": 12, 
+                    "commission": 0, 
+                    "coefficient": 0
+                }
+            ],
+            "rawContext": "Resumen breve en español de 1 linea"
         }
 
         REGLAS:
-        1. "price" debe ser NUMBER (ej: 1200), no string. Si no encuentras precio, pon 0 o estima.
-        2. "financing": Si el PDF tiene tablas de financiación con coeficientes (ej: 0.087 para 12 meses), usa el campo "coefficient". Si es % TAE/Comisión, usa "commission".
-        3. "features": Extrae al menos 3 características clave.
-        4. "type": Infiere si es Aire (Split/Conductos), Caldera o Termo.
-        5. NO incluyas markdown (backticks). Solo el JSON puro.
+        1. Precios (price, coefficient) deben ser NUMBER.
+        2. Si el PDF tiene tablas de financiación con coeficientes (ej: 0.087), úsalos.
+        3. Traduce los términos técnicos con precisión al contexto de climatización.
+        4. "type": Infiere si es Aire, Caldera o Termo.
+        5. Devuelve SOLO el JSON válido, sin markdown.
         `;
 
         // 4. Call Gemini Model
@@ -166,7 +199,11 @@ class AppApi {
         
         // Default fallbacks
         if (!jsonData.installationKits || jsonData.installationKits.length === 0) {
-            jsonData.installationKits = [{ id: 'k1', name: 'Instalación Básica + Certificado', price: 199 }];
+            jsonData.installationKits = [{ 
+                id: 'k1', 
+                name: { es: 'Instalación Básica', en: 'Basic Installation', ca: 'Instal·lació Bàsica', fr: 'Installation de base' }, 
+                price: 199 
+            }];
         }
         
         return jsonData;
@@ -361,7 +398,8 @@ class AppApi {
               email: 'info@ecoquote.com',
               brandName: 'EcoQuote',
               showLogo: false,
-              companyDescription: 'Expertos en soluciones de climatización eficiente. Presupuestos transparentes, instalación profesional y las mejores marcas del mercado.'
+              companyDescription: 'Expertos en soluciones de climatización eficiente. Presupuestos transparentes, instalación profesional y las mejores marcas del mercado.',
+              partnerLogoUrl: ''
           };
       }
       return data;

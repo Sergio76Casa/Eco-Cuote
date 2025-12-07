@@ -219,10 +219,11 @@ const Admin: React.FC<AdminProps> = ({ onLogout }) => {
   // Settings State
   const [companyInfo, setCompanyInfo] = useState<CompanyInfo>({ 
       address: '', phone: '', email: '', 
-      brandName: '', companyDescription: '', showLogo: false 
+      brandName: '', companyDescription: '', showLogo: false, partnerLogoUrl: '' 
   });
   
   const [companyLogoFile, setCompanyLogoFile] = useState<File | null>(null);
+  const [partnerLogoFile, setPartnerLogoFile] = useState<File | null>(null);
 
   // Edit State
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
@@ -300,9 +301,15 @@ const Admin: React.FC<AdminProps> = ({ onLogout }) => {
               updatedInfo.logoUrl = logoUrl;
           }
 
+          if (partnerLogoFile) {
+              const partnerUrl = await api.uploadFile(partnerLogoFile, 'images');
+              updatedInfo.partnerLogoUrl = partnerUrl;
+          }
+
           await api.updateCompanyInfo(updatedInfo);
           setMessage({ text: 'Configuración guardada.', type: 'success' });
           setCompanyLogoFile(null);
+          setPartnerLogoFile(null);
       } catch(e) {
           setMessage({ text: 'Error al guardar.', type: 'error' });
       } finally {
@@ -940,29 +947,56 @@ const Admin: React.FC<AdminProps> = ({ onLogout }) => {
                             </div>
                         </div>
 
-                        <div className="space-y-4">
-                            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Logo de Empresa</label>
-                            {companyInfo.logoUrl || companyLogoFile ? (
-                                <div className="relative group bg-slate-100 rounded-xl border border-slate-200 h-40 flex items-center justify-center p-4">
-                                    <img 
-                                        src={companyLogoFile ? URL.createObjectURL(companyLogoFile) : companyInfo.logoUrl} 
-                                        className="max-h-full max-w-full object-contain"
-                                    />
-                                    <button 
-                                        onClick={() => { setCompanyInfo({...companyInfo, logoUrl: ''}); setCompanyLogoFile(null); }} 
-                                        className="absolute top-2 right-2 bg-white p-1.5 rounded-lg text-red-500 shadow-sm border border-slate-100 hover:text-red-600 transition-colors"
-                                    >
-                                        <Trash2 size={16}/>
-                                    </button>
-                                </div>
-                            ) : (
-                                <label className="border-2 border-dashed border-slate-300 rounded-xl h-40 flex flex-col items-center justify-center cursor-pointer hover:bg-slate-50 hover:border-slate-400 transition-all text-slate-400 bg-white">
-                                    <ImageIcon size={24} className="mb-2"/>
-                                    <span className="text-xs font-medium">Subir Logo (PNG/SVG)</span>
-                                    <input type="file" accept="image/*" className="hidden" onChange={e => e.target.files && setCompanyLogoFile(e.target.files[0])}/>
-                                </label>
-                            )}
-                            <p className="text-[10px] text-slate-400 leading-tight">Recomendado: Imagen con fondo transparente (PNG) y formato horizontal.</p>
+                        <div className="space-y-6">
+                            {/* Company Logo Upload */}
+                            <div className="space-y-2">
+                                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Logo de Empresa</label>
+                                {companyInfo.logoUrl || companyLogoFile ? (
+                                    <div className="relative group bg-slate-100 rounded-xl border border-slate-200 h-32 flex items-center justify-center p-4">
+                                        <img 
+                                            src={companyLogoFile ? URL.createObjectURL(companyLogoFile) : companyInfo.logoUrl} 
+                                            className="max-h-full max-w-full object-contain"
+                                        />
+                                        <button 
+                                            onClick={() => { setCompanyInfo({...companyInfo, logoUrl: ''}); setCompanyLogoFile(null); }} 
+                                            className="absolute top-2 right-2 bg-white p-1.5 rounded-lg text-red-500 shadow-sm border border-slate-100 hover:text-red-600 transition-colors"
+                                        >
+                                            <Trash2 size={16}/>
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <label className="border-2 border-dashed border-slate-300 rounded-xl h-32 flex flex-col items-center justify-center cursor-pointer hover:bg-slate-50 hover:border-slate-400 transition-all text-slate-400 bg-white">
+                                        <ImageIcon size={24} className="mb-2"/>
+                                        <span className="text-xs font-medium">Subir Logo (PNG/SVG)</span>
+                                        <input type="file" accept="image/*" className="hidden" onChange={e => e.target.files && setCompanyLogoFile(e.target.files[0])}/>
+                                    </label>
+                                )}
+                            </div>
+
+                            {/* Partner Logo Upload */}
+                            <div className="space-y-2 pt-2 border-t border-slate-100">
+                                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Logo Partner / Certificación (Footer)</label>
+                                {companyInfo.partnerLogoUrl || partnerLogoFile ? (
+                                    <div className="relative group bg-slate-800 rounded-xl border border-slate-700 h-24 flex items-center justify-center p-4">
+                                        <img 
+                                            src={partnerLogoFile ? URL.createObjectURL(partnerLogoFile) : companyInfo.partnerLogoUrl} 
+                                            className="max-h-full max-w-full object-contain"
+                                        />
+                                        <button 
+                                            onClick={() => { setCompanyInfo({...companyInfo, partnerLogoUrl: ''}); setPartnerLogoFile(null); }} 
+                                            className="absolute top-2 right-2 bg-white p-1.5 rounded-lg text-red-500 shadow-sm border border-slate-100 hover:text-red-600 transition-colors"
+                                        >
+                                            <Trash2 size={14}/>
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <label className="border-2 border-dashed border-slate-300 rounded-xl h-24 flex flex-col items-center justify-center cursor-pointer hover:bg-slate-50 hover:border-slate-400 transition-all text-slate-400 bg-white">
+                                        <ImageIcon size={20} className="mb-1"/>
+                                        <span className="text-[10px] font-medium">Subir Partner (Blanco/Transparente)</span>
+                                        <input type="file" accept="image/*" className="hidden" onChange={e => e.target.files && setPartnerLogoFile(e.target.files[0])}/>
+                                    </label>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>
