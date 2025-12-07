@@ -17,9 +17,10 @@ interface LocalizedInputProps {
     value: string | LocalizedText;
     onChange: (val: string | LocalizedText) => void;
     placeholder?: string;
+    multiline?: boolean;
 }
 
-const LocalizedInput: React.FC<LocalizedInputProps> = ({ value, onChange, placeholder }) => {
+const LocalizedInput: React.FC<LocalizedInputProps> = ({ value, onChange, placeholder, multiline = false }) => {
     const [expanded, setExpanded] = useState(false);
 
     // Helper to get text for a lang
@@ -35,18 +36,22 @@ const LocalizedInput: React.FC<LocalizedInputProps> = ({ value, onChange, placeh
         onChange(newValue);
     };
 
+    const InputComponent = multiline ? 'textarea' : 'input';
+    const inputClasses = `w-full text-sm bg-white border border-slate-300 text-slate-900 rounded-l-lg p-3 pl-12 pr-3 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none placeholder:text-slate-400 shadow-sm transition-all ${multiline ? 'h-24 resize-none' : ''}`;
+    const secondaryInputClasses = `w-full text-sm bg-white border border-slate-300 text-slate-900 rounded-lg p-2.5 pl-14 pr-3 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none placeholder:text-slate-400 shadow-sm transition-all ${multiline ? 'h-24 resize-none' : ''}`;
+
     return (
         <div className="relative w-full">
             {/* Main Input (ES) */}
             <div className="flex relative">
                 <div className="relative flex-1 group">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none z-10">
+                    <div className="absolute top-0 bottom-0 left-0 pl-3 flex items-center pointer-events-none z-10" style={{ alignItems: multiline ? 'flex-start' : 'center', paddingTop: multiline ? '0.75rem' : '0' }}>
                         <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-300 shadow-sm">ES</span>
                     </div>
-                    <input 
-                        className="w-full text-sm bg-white border border-slate-300 text-slate-900 rounded-l-lg py-2.5 pl-12 pr-3 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none placeholder:text-slate-400 shadow-sm transition-all"
+                    <InputComponent 
+                        className={inputClasses}
                         value={getText('es')}
-                        onChange={(e) => updateText('es', e.target.value)}
+                        onChange={(e: any) => updateText('es', e.target.value)}
                         placeholder={placeholder}
                     />
                 </div>
@@ -58,6 +63,7 @@ const LocalizedInput: React.FC<LocalizedInputProps> = ({ value, onChange, placeh
                         : 'bg-slate-50 border-slate-300 text-slate-500 hover:bg-white hover:text-brand-600'
                     }`}
                     title="Traducir a otros idiomas"
+                    style={{ height: multiline ? 'auto' : undefined }}
                 >
                     <Globe size={18} />
                 </button>
@@ -74,15 +80,15 @@ const LocalizedInput: React.FC<LocalizedInputProps> = ({ value, onChange, placeh
                     
                     {['en', 'ca', 'fr'].map((lang) => (
                         <div key={lang} className="relative flex-1 group">
-                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none z-10">
+                            <div className="absolute top-0 bottom-0 left-0 pl-3 flex items-center pointer-events-none z-10" style={{ alignItems: multiline ? 'flex-start' : 'center', paddingTop: multiline ? '0.6rem' : '0' }}>
                                 <span className="text-[10px] font-bold text-slate-600 bg-white px-1.5 py-0.5 rounded border border-slate-200 uppercase w-8 text-center shadow-sm">
                                     {lang}
                                 </span>
                             </div>
-                            <input 
-                                className="w-full text-sm bg-white border border-slate-300 text-slate-900 rounded-lg py-2 pl-14 pr-3 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none placeholder:text-slate-400 shadow-sm transition-all"
+                            <InputComponent 
+                                className={secondaryInputClasses}
                                 value={getText(lang)}
-                                onChange={(e) => updateText(lang, e.target.value)}
+                                onChange={(e: any) => updateText(lang, e.target.value)}
                                 placeholder={`Texto en ${lang.toUpperCase()}...`}
                             />
                         </div>
@@ -558,8 +564,7 @@ const Admin: React.FC<AdminProps> = ({ onLogout }) => {
         {/* --- TAB: PRODUCTS --- */}
         {activeTab === 'products' && (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
-            {/* ... (Existing Products List View Logic) ... */}
-            {/* Note: I'm including the full content, so this part remains same as provided in prompt but with 'localized' prop fixed if needed */}
+            {/* VIEW MODE: LIST (TABLE) */}
             {viewMode === 'list' && (
                 <>
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -606,7 +611,7 @@ const Admin: React.FC<AdminProps> = ({ onLogout }) => {
                                         <td className="p-4 font-mono text-slate-700 text-xs">
                                             {p.pricing?.map(pr => (
                                                 <div key={pr.id} className="mb-1">
-                                                    {typeof pr.name === 'string' ? pr.name : pr.name['es']}: <b className="text-brand-600">{pr.price}€</b>
+                                                    {getLangText(pr.name, 'es')}: <b className="text-brand-600">{pr.price}€</b>
                                                 </div>
                                             ))}
                                         </td>
@@ -647,7 +652,7 @@ const Admin: React.FC<AdminProps> = ({ onLogout }) => {
                 </>
             )}
 
-            {/* VIEW: FORM MODE */}
+            {/* VIEW MODE: FORM (FULL PAGE EDITOR) */}
             {viewMode === 'form' && (
                 <div className="animate-in slide-in-from-right-4 fade-in duration-300">
                     <div className="bg-white rounded-3xl shadow-lg border border-slate-200 overflow-hidden">
@@ -964,11 +969,11 @@ const Admin: React.FC<AdminProps> = ({ onLogout }) => {
                             </div>
                             <div>
                                 <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Descripción (Footer)</label>
-                                <textarea 
-                                    className="w-full border border-slate-300 rounded-lg p-3 outline-none focus:ring-2 focus:ring-brand-500 text-slate-900 h-24 resize-none text-sm"
-                                    value={companyInfo.companyDescription}
-                                    onChange={e => setCompanyInfo({...companyInfo, companyDescription: e.target.value})}
+                                <LocalizedInput
+                                    value={companyInfo.companyDescription || ''}
+                                    onChange={val => setCompanyInfo({...companyInfo, companyDescription: val})}
                                     placeholder="Expertos en soluciones..."
+                                    multiline={true}
                                 />
                             </div>
                         </div>

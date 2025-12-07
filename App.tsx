@@ -22,7 +22,7 @@ const INFO_IMAGES: Record<string, string> = {
 };
 
 const App: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [view, setView] = useState<'home' | 'calculator' | 'admin'>('home');
   const [products, setProducts] = useState<Product[]>([]);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -511,7 +511,7 @@ const App: React.FC = () => {
                         )}
                     </div>
                     <p className="text-slate-400 text-sm leading-relaxed">
-                        {companyInfo.companyDescription || t('footer.brand_desc')}
+                        {getLangText(companyInfo.companyDescription, i18n.language) || t('footer.brand_desc')}
                     </p>
                     <div className="flex gap-4 pt-2">
                         {companyInfo.facebookUrl && (

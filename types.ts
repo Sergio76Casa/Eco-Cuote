@@ -101,7 +101,7 @@ export interface CompanyInfo {
   // New Branding Fields
   logoUrl?: string;
   brandName?: string; // e.g. "EcoQuote"
-  companyDescription?: string;
+  companyDescription?: string | LocalizedText; // Support translation
   showLogo?: boolean; // true = show img, false = show text
   partnerLogoUrl?: string; // Logo for footer (Endesa, RITE, etc)
   isoLogoUrl?: string; // Logo for ISO Certification
