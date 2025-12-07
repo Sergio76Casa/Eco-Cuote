@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Product } from '../types';
-import { ArrowRight, Star, Wind, Zap, Share2, Copy, Check, X, FileText } from 'lucide-react';
+import { ArrowRight, Star, Wind, Zap, Share2, Copy, Check, X, FileText, Eye, LayoutList, ChevronRight } from 'lucide-react';
 
 interface ProductCardProps {
   product: Product;
@@ -10,6 +10,7 @@ interface ProductCardProps {
 
 const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) => {
   const [showShareModal, setShowShareModal] = useState(false);
+  const [showSpecsModal, setShowSpecsModal] = useState(false);
   const [copied, setCopied] = useState(false);
 
   // Get lowest price for "From X €"
@@ -20,6 +21,11 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) => {
   const handleShareClick = (e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent card click (navigation)
     setShowShareModal(true);
+  };
+
+  const handleSpecsClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setShowSpecsModal(true);
   };
 
   const handleCopy = () => {
@@ -39,8 +45,11 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) => {
 
   return (
     <>
-        <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden hover:shadow-xl transition-all duration-300 flex flex-col group relative">
-        <div className="h-56 bg-white flex items-center justify-center relative overflow-hidden p-6">
+        <div 
+            className="bg-white rounded-2xl border border-slate-200 overflow-hidden hover:shadow-xl transition-all duration-300 flex flex-col group relative cursor-pointer"
+            onClick={() => onSelect(product)}
+        >
+        <div className="h-56 bg-white flex items-center justify-center relative overflow-hidden p-6 group-hover:bg-slate-50/50 transition-colors">
             
             {/* Product Image */}
             {product.imageUrl ? (
@@ -65,25 +74,34 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) => {
                 </div>
             )}
             
-            {/* Share Button (Top Right) */}
-            <button 
-                onClick={handleShareClick}
-                className="absolute top-3 right-3 z-20 bg-white/80 hover:bg-white text-slate-400 hover:text-brand-600 p-2 rounded-full shadow-sm backdrop-blur-sm transition-all transform hover:scale-110"
-                title="Compartir producto"
-            >
-                <Share2 size={18} />
-            </button>
-
-            {/* PDF Button (Next to Share) */}
-            {product.pdfUrl && (
+            {/* Action Buttons (Top Right) 
+                Changed: Always visible on mobile (opacity-100), hover effect on larger screens (lg:opacity-0 lg:group-hover:opacity-100)
+            */}
+            <div className="absolute top-3 right-3 z-20 flex flex-col gap-2 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity translate-x-0 lg:translate-x-2 lg:group-hover:translate-x-0 duration-300">
                 <button 
-                    onClick={handlePdfClick}
-                    className="absolute top-3 right-12 z-20 bg-white/80 hover:bg-white text-slate-400 hover:text-red-500 p-2 rounded-full shadow-sm backdrop-blur-sm transition-all transform hover:scale-110"
-                    title="Ver Ficha Técnica"
+                    onClick={handleShareClick}
+                    className="bg-white hover:bg-brand-50 text-slate-400 hover:text-brand-600 p-2 rounded-full shadow-sm border border-slate-100 transition-all"
+                    title="Compartir"
                 >
-                    <FileText size={18} />
+                    <Share2 size={18} />
                 </button>
-            )}
+                {product.pdfUrl && (
+                    <button 
+                        onClick={handlePdfClick}
+                        className="bg-white hover:bg-red-50 text-slate-400 hover:text-red-500 p-2 rounded-full shadow-sm border border-slate-100 transition-all"
+                        title="Ficha Técnica PDF"
+                    >
+                        <FileText size={18} />
+                    </button>
+                )}
+                 <button 
+                    onClick={handleSpecsClick}
+                    className="bg-white hover:bg-blue-50 text-slate-400 hover:text-blue-600 p-2 rounded-full shadow-sm border border-slate-100 transition-all"
+                    title="Ver Características Completas"
+                >
+                    <Eye size={18} />
+                </button>
+            </div>
 
             <div className="absolute bottom-3 left-3 flex gap-2">
                 {product.type === 'Split' ? <Wind className="text-brand-500" size={16} /> : <Zap className="text-brand-500" size={16} />}
@@ -95,35 +113,40 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) => {
             <div className="flex justify-between items-start mb-2">
                 <div>
                     <p className="text-xs text-slate-500 font-bold uppercase tracking-wider mb-1">{product.brand}</p>
-                    <h3 className="text-xl font-bold text-slate-900 leading-tight">{product.model}</h3>
+                    <h3 className="text-xl font-bold text-slate-900 leading-tight group-hover:text-brand-600 transition-colors">{product.model}</h3>
                 </div>
             </div>
 
             <div className="space-y-2 mb-6 flex-1">
                 {product.features.slice(0, 3).map((f, idx) => (
                     <div key={idx} className="flex items-center gap-2 text-sm text-slate-600">
-                        <Star size={14} className="text-brand-400 fill-brand-400 shrink-0" />
+                        <Check size={14} className="text-brand-400 shrink-0" />
                         <span className="truncate">{f.title}</span>
                     </div>
                 ))}
+                {product.features.length > 3 && (
+                    <div 
+                        onClick={handleSpecsClick}
+                        className="text-xs font-bold text-brand-600 hover:text-brand-700 cursor-pointer pl-6 pt-1 flex items-center gap-1"
+                    >
+                        + {product.features.length - 3} características más <ArrowRight size={10}/>
+                    </div>
+                )}
             </div>
 
-            <div className="flex items-end justify-between border-t border-slate-100 pt-4">
+            <div className="flex items-end justify-between border-t border-slate-100 pt-4 mt-auto">
                 <div>
                     <p className="text-xs text-slate-400 mb-0.5 font-medium">Desde</p>
                     <p className="text-2xl font-bold text-brand-600">{basePrice.toLocaleString('es-ES')} €</p>
                 </div>
-                <button 
-                    onClick={() => onSelect(product)}
-                    className="bg-brand-600 hover:bg-brand-700 text-white p-3 rounded-xl transition-colors shadow-lg shadow-brand-200 group-hover:shadow-brand-300"
-                >
+                <div className="bg-brand-600 group-hover:bg-brand-700 text-white p-3 rounded-xl transition-all shadow-lg shadow-brand-200 group-hover:shadow-brand-300 group-hover:scale-105">
                     <ArrowRight size={20} />
-                </button>
+                </div>
             </div>
         </div>
         </div>
 
-        {/* Share Modal Portal */}
+        {/* Share Modal */}
         {showShareModal && (
             <div className="fixed inset-0 bg-slate-900/60 z-[60] flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in" onClick={(e) => { e.stopPropagation(); setShowShareModal(false); }}>
                 <div 
@@ -167,6 +190,96 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) => {
                         </button>
                     </div>
                     {copied && <p className="text-xs text-green-600 font-bold mt-2 text-center">¡Enlace copiado al portapapeles!</p>}
+                </div>
+            </div>
+        )}
+
+        {/* Detailed Specs Modal */}
+        {showSpecsModal && (
+            <div className="fixed inset-0 bg-slate-900/60 z-[60] flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in" onClick={(e) => { e.stopPropagation(); setShowSpecsModal(false); }}>
+                <div 
+                    className="bg-white rounded-3xl w-full max-w-2xl shadow-2xl animate-in zoom-in-95 flex flex-col max-h-[90vh] overflow-hidden"
+                    onClick={(e) => e.stopPropagation()}
+                >
+                    {/* Header */}
+                    <div className="p-6 border-b border-slate-100 flex justify-between items-start bg-slate-50/50">
+                         <div className="flex items-center gap-4">
+                            <div className="w-20 h-20 bg-white rounded-xl border border-slate-200 p-2 flex items-center justify-center">
+                                {product.imageUrl ? (
+                                    <img src={product.imageUrl} alt={product.model} className="w-full h-full object-contain"/>
+                                ) : (
+                                    <div className="text-slate-300 font-bold text-xs uppercase text-center">{product.brand}</div>
+                                )}
+                            </div>
+                            <div>
+                                <div className="flex items-center gap-2 mb-1">
+                                    {product.brandLogoUrl && <img src={product.brandLogoUrl} alt={product.brand} className="h-5 w-auto object-contain" />}
+                                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">{product.brand}</span>
+                                </div>
+                                <h3 className="text-2xl font-black text-slate-900 leading-none">{product.model}</h3>
+                                <div className="text-sm font-medium text-slate-500 mt-1">{product.type}</div>
+                            </div>
+                         </div>
+                         <button onClick={() => setShowSpecsModal(false)} className="p-2 hover:bg-slate-200 rounded-full text-slate-400 transition-colors">
+                            <X size={24}/>
+                         </button>
+                    </div>
+
+                    {/* Body */}
+                    <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+                        <div className="mb-6">
+                            <h4 className="font-bold text-lg text-slate-800 flex items-center gap-2 mb-4">
+                                <LayoutList className="text-brand-500" size={20}/> Especificaciones Técnicas
+                            </h4>
+                            
+                            {product.rawContext && (
+                                <p className="text-slate-600 mb-6 bg-blue-50 p-4 rounded-xl border border-blue-100 text-sm leading-relaxed">
+                                    {product.rawContext}
+                                </p>
+                            )}
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                {product.features.map((feature, idx) => (
+                                    <div key={idx} className="p-3 rounded-xl border border-slate-100 bg-slate-50/50 hover:bg-white hover:border-brand-200 hover:shadow-sm transition-all flex items-start gap-3">
+                                        <div className="mt-0.5 bg-brand-100 text-brand-600 rounded-full p-1 shrink-0">
+                                            <Check size={12} strokeWidth={3}/>
+                                        </div>
+                                        <div>
+                                            <div className="font-bold text-slate-800 text-sm">{feature.title}</div>
+                                            <div className="text-xs text-slate-500 mt-0.5 leading-snug">{feature.description}</div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {product.pricing.length > 0 && (
+                             <div className="mb-4">
+                                <h4 className="font-bold text-sm text-slate-400 uppercase tracking-wider mb-3">Variantes Disponibles</h4>
+                                <div className="flex flex-wrap gap-2">
+                                    {product.pricing.map(p => (
+                                        <span key={p.id} className="px-3 py-1.5 bg-slate-100 rounded-lg text-sm text-slate-700 font-medium border border-slate-200">
+                                            {p.name}: <span className="font-bold text-brand-600">{p.price} €</span>
+                                        </span>
+                                    ))}
+                                </div>
+                             </div>
+                        )}
+                    </div>
+
+                    {/* Footer */}
+                    <div className="p-5 border-t border-slate-100 bg-white flex justify-between items-center">
+                        <div>
+                            <div className="text-xs text-slate-500 font-medium">Precio base</div>
+                            <div className="text-2xl font-black text-brand-600">{basePrice.toLocaleString('es-ES')} €</div>
+                        </div>
+                        <button 
+                            onClick={() => { setShowSpecsModal(false); onSelect(product); }}
+                            className="bg-brand-600 hover:bg-brand-700 text-white px-6 py-3 rounded-xl font-bold shadow-lg shadow-brand-200 flex items-center gap-2 transition-all hover:scale-105"
+                        >
+                            Configurar Presupuesto <ChevronRight size={18}/>
+                        </button>
+                    </div>
                 </div>
             </div>
         )}

@@ -231,9 +231,19 @@ const App: React.FC = () => {
                     onClick={() => { 
                       setView('home'); 
                       setSelectedProduct(null);
-                      setTimeout(() => document.getElementById('catalogo')?.scrollIntoView({behavior:'smooth'}), 100);
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
                     }}
                     className={`font-semibold px-3 py-2 rounded-lg transition-colors ${view === 'home' && !selectedProduct ? 'text-brand-600 bg-brand-50' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100'}`}
+                >
+                    Inicio
+                </button>
+                <button 
+                    onClick={() => { 
+                      setView('home'); 
+                      setSelectedProduct(null);
+                      setTimeout(() => document.getElementById('catalogo')?.scrollIntoView({behavior:'smooth'}), 100);
+                    }}
+                    className="font-semibold text-slate-500 hover:text-slate-900 hover:bg-slate-100 px-3 py-2 rounded-lg transition-colors"
                 >
                     Productos
                 </button>
@@ -266,6 +276,17 @@ const App: React.FC = () => {
             {/* Mobile Menu Dropdown */}
             {mobileMenuOpen && (
                 <div className="absolute top-0 left-0 w-full bg-white border-b border-slate-200 shadow-xl p-6 pt-24 flex flex-col gap-4 md:hidden animate-in slide-in-from-top-10 duration-200 z-40">
+                    <button 
+                        onClick={() => { 
+                            setView('home'); 
+                            setSelectedProduct(null);
+                            setMobileMenuOpen(false);
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }}
+                        className="text-left font-bold text-lg text-slate-700 p-3 hover:bg-slate-50 rounded-xl"
+                    >
+                        Inicio
+                    </button>
                     <button 
                         onClick={() => { 
                             setView('home'); 
