@@ -1,13 +1,23 @@
 
-import { Product, SavedQuote, QuotePayload, ContactData, CompanyInfo } from '../types';
+import { Product, SavedQuote, QuotePayload, ContactData, CompanyInfo, LocalizedText } from '../types';
 import { createClient } from '@supabase/supabase-js';
 import { jsPDF } from 'jspdf';
 import { GoogleGenAI } from "@google/genai";
 import emailjs from '@emailjs/browser';
 
+// Helper to safely access environment variables
+const getEnv = (key: string) => {
+  try {
+    // @ts-ignore
+    return (import.meta.env && import.meta.env[key]) || undefined;
+  } catch (e) {
+    return undefined;
+  }
+};
+
 // --- CONFIGURACIÓN DE SUPABASE ---
 const SUPABASE_URL = 'https://reqsaffzqrytnovzwicl.supabase.co'; 
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJlcXNhZmZ6cXJ5dG5vdnp3aWNsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4NjIxMzgsImV4cCI6MjA4MDQzODEzOH0.PlAKMfoP1Ji0pNEifMIuJMgQFSQA_BOlJRUGjjPnj9M';
+const SUPABASE_ANON_KEY = getEnv('VITE_SUPABASE_KEY') || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJlcXNhZmZ6cXJ5dG5vdnp3aWNsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4NjIxMzgsImV4cCI6MjA4MDQzODEzOH0.PlAKMfoP1Ji0pNEifMIuJMgQFSQA_BOlJRUGjjPnj9M';
 
 // --- CONFIGURACIÓN EMAILJS ---
 const EMAILJS_SERVICE_ID = 'service_rxyenxk';
@@ -19,12 +29,21 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 class AppApi {
   
-  // 1. OBTENER CATÁLOGO
-  async getCatalog(): Promise<Product[]> {
-    const { data, error } = await supabase
+  // 1. OBTENER CATÁLOGO (Admite filtro de papelera)
+  async getCatalog(showDeleted: boolean = false): Promise<Product[]> {
+    let query = supabase
       .from('products')
       .select('*')
       .order('created_at', { ascending: false });
+
+    // Filter by deleted status
+    if (showDeleted) {
+        query = query.eq('is_deleted', true);
+    } else {
+        query = query.eq('is_deleted', false); // Default view: only active
+    }
+
+    const { data, error } = await query;
 
     if (error) {
       console.error('Error fetching catalog:', error);
@@ -39,7 +58,7 @@ class AppApi {
     
     const { error } = await supabase
         .from('products')
-        .insert([payload]);
+        .insert([{ ...payload, is_deleted: false }]);
 
     if (error) {
         console.error("Error adding product:", error);
@@ -50,7 +69,6 @@ class AppApi {
 
   // 1.c ACTUALIZAR PRODUCTO EXISTENTE
   async updateProduct(id: string, updates: Partial<Product>): Promise<boolean> {
-      // Eliminamos el ID del payload para evitar conflictos
       const { id: _, ...payload } = updates;
       
       const { error } = await supabase
@@ -65,20 +83,29 @@ class AppApi {
       return true;
   }
 
-  // 1.d ELIMINAR PRODUCTO
-  async deleteProduct(id: string): Promise<boolean> {
-      const { error } = await supabase.from('products').delete().eq('id', id);
+  // 1.d ELIMINAR PRODUCTO (SOFT DELETE / RESTORE)
+  async deleteProduct(id: string, permanent: boolean = false): Promise<boolean> {
+      if (permanent) {
+          const { error } = await supabase.from('products').delete().eq('id', id);
+          if (error) throw error;
+      } else {
+          // Soft delete
+          const { error } = await supabase.from('products').update({ is_deleted: true }).eq('id', id);
+          if (error) throw error;
+      }
+      return true;
+  }
+
+  async restoreProduct(id: string): Promise<boolean> {
+      const { error } = await supabase.from('products').update({ is_deleted: false }).eq('id', id);
       if (error) throw error;
       return true;
   }
 
   // 1.e SUBIR ARCHIVO (Genérico: PDF, Imagen, Logo)
-  async uploadFile(file: File, folder: 'product-docs' | 'images' = 'product-docs'): Promise<string> {
-      // Clean filename
+  async uploadFile(file: File, folder: 'product-docs' | 'images' | 'clients' = 'product-docs'): Promise<string> {
       const cleanName = file.name.replace(/[^a-zA-Z0-9.]/g, '_');
       const fileName = `${folder}/${Date.now()}_${cleanName}`;
-      
-      // We use the 'documents' bucket for everything as it is configured public
       const bucketName = 'documents';
 
       const { data, error } = await supabase.storage
@@ -91,19 +118,28 @@ class AppApi {
       return urlData.publicUrl;
   }
 
-  // Wrapper for backward compatibility if needed, or replace usages
   async uploadProductPdf(file: File): Promise<string> {
       return this.uploadFile(file, 'product-docs');
+  }
+
+  private getLangTextStr(text: string | LocalizedText | undefined): string {
+    if (!text) return '';
+    if (typeof text === 'string') return text;
+    return text['es'] || '';
+  }
+
+  private getImageFormat(url: string): string {
+      if (!url) return 'PNG';
+      const cleanUrl = url.split('?')[0].toLowerCase();
+      if (cleanUrl.endsWith('.jpg') || cleanUrl.endsWith('.jpeg')) return 'JPEG';
+      return 'PNG';
   }
 
   // 1.f EXTRAER DATOS CON GEMINI (IA)
   async extractProductFromPdf(file: File): Promise<Partial<Product> | null> {
     try {
-        // 1. Convert File to Base64
         const base64Data = await this.fileToBase64(file);
-
-        // 2. Initialize Gemini with VITE env var
-        const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+        const apiKey = getEnv('VITE_GEMINI_API_KEY');
         
         if (!apiKey) {
             console.error("Falta VITE_GEMINI_API_KEY en variables de entorno");
@@ -112,7 +148,6 @@ class AppApi {
 
         const ai = new GoogleGenAI({ apiKey });
         
-        // 3. Define Prompt
         const prompt = `Eres un experto en climatización y traducción técnica. Analiza el PDF adjunto y extrae los datos técnicos y comerciales en formato JSON estrictamente válido.
         
         IMPORTANTE: Para todos los campos de texto visibles al usuario (nombre, título, descripción, etiquetas), DEBES generar un objeto con traducciones en 4 idiomas: Español (es), Inglés (en), Catalán (ca) y Francés (fr).
@@ -168,7 +203,6 @@ class AppApi {
         5. Devuelve SOLO el JSON válido, sin markdown.
         `;
 
-        // 4. Call Gemini Model
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
             contents: {
@@ -184,10 +218,7 @@ class AppApi {
             }
         });
 
-        // 5. Parse Response
         let text = response.text || '';
-        
-        // Clean Markdown if present
         text = text.replace(/```json/gi, "").replace(/```/g, "").trim();
         const firstBrace = text.indexOf('{');
         const lastBrace = text.lastIndexOf('}');
@@ -197,7 +228,6 @@ class AppApi {
 
         const jsonData = JSON.parse(text);
         
-        // Default fallbacks
         if (!jsonData.installationKits || jsonData.installationKits.length === 0) {
             jsonData.installationKits = [{ 
                 id: 'k1', 
@@ -214,14 +244,12 @@ class AppApi {
     }
   }
 
-  // Helper for Base64
   private fileToBase64(file: File): Promise<string> {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.readAsDataURL(file);
         reader.onload = () => {
             const result = reader.result as string;
-            // Remove "data:application/pdf;base64," prefix
             const base64 = result.split(',')[1];
             resolve(base64);
         };
@@ -229,16 +257,24 @@ class AppApi {
     });
   }
 
-  // 2. VERIFICAR CONTRASEÑA ADMIN
   async verifyPassword(password: string): Promise<{ success: boolean }> {
     return { success: password === 'admin123' };
   }
 
-  // 3. GUARDAR PRESUPUESTO Y GENERAR PDF + EMAIL
   async saveQuote(payload: QuotePayload): Promise<{ success: boolean; pdfUrl: string; emailSent: boolean }> {
     try {
-      // 1. Generar y Subir PDF (Ahora es ASYNC para cargar el logo)
-      const pdfBlob = await this.generateClientSidePDF(payload);
+      let productImageUrl = '';
+      let productFeatures: any[] = [];
+      const { data: products } = await supabase.from('products').select('*');
+      
+      const foundProduct = products?.find(p => p.brand === payload.brand && payload.model.includes(this.getLangTextStr(p.model)));
+      
+      if (foundProduct) {
+          productImageUrl = foundProduct.imageUrl || '';
+          productFeatures = foundProduct.features || [];
+      }
+
+      const pdfBlob = await this.generateClientSidePDF(payload, productImageUrl, productFeatures);
       
       const fileName = `quotes/${Date.now()}_${payload.client.nombre.replace(/\s+/g, '_')}.pdf`;
       const { data: uploadData, error: uploadError } = await supabase.storage
@@ -251,7 +287,6 @@ class AppApi {
         publicUrl = data.publicUrl;
       }
 
-      // 2. Enviar Email (si se solicita)
       let emailSent = false;
       if (payload.sendEmail && publicUrl) {
           emailSent = await this.sendEmailWithPdf(
@@ -263,7 +298,6 @@ class AppApi {
           );
       }
 
-      // 3. Guardar en Base de Datos
       const { error: dbError } = await supabase.from('quotes').insert({
         date: new Date().toISOString(),
         client_name: `${payload.client.nombre} ${payload.client.apellidos}`,
@@ -271,8 +305,12 @@ class AppApi {
         brand: payload.brand,
         model: payload.model,
         price: payload.price,
+        financing: payload.financing,
         pdf_url: publicUrl,
-        email_sent: emailSent
+        dniUrl: payload.dniUrl || null,
+        incomeUrl: payload.incomeUrl || null,
+        email_sent: emailSent,
+        is_deleted: false
       });
 
       if (dbError) throw dbError;
@@ -285,7 +323,6 @@ class AppApi {
     }
   }
 
-  // AUX: Enviar Email con EmailJS
   private async sendEmailWithPdf(toEmail: string, toName: string, brand: string, model: string, pdfUrl: string): Promise<boolean> {
       try {
           const result = await emailjs.send(
@@ -307,12 +344,20 @@ class AppApi {
       }
   }
 
-  // 4. OBTENER HISTORIAL (Registro)
-  async getSavedQuotes(): Promise<SavedQuote[]> {
-    const { data, error } = await supabase
+  // 4. OBTENER HISTORIAL (Admite filtro papelera)
+  async getSavedQuotes(showDeleted: boolean = false): Promise<SavedQuote[]> {
+    let query = supabase
       .from('quotes')
       .select('*')
       .order('date', { ascending: false });
+
+    if (showDeleted) {
+        query = query.eq('is_deleted', true);
+    } else {
+        query = query.eq('is_deleted', false);
+    }
+
+    const { data, error } = await query;
 
     if (error) return [];
 
@@ -324,19 +369,34 @@ class AppApi {
       brand: row.brand,
       model: row.model,
       price: row.price,
+      financing: row.financing || 'Contado',
       emailSent: row.email_sent,
-      pdfUrl: row.pdf_url
+      pdfUrl: row.pdf_url,
+      dniUrl: row.dniUrl,
+      incomeUrl: row.incomeUrl,
+      is_deleted: row.is_deleted
     }));
   }
 
-  // 4.b ELIMINAR PRESUPUESTO
-  async deleteQuote(id: string): Promise<boolean> {
-      const { error } = await supabase.from('quotes').delete().eq('id', id);
+  // 4.b ELIMINAR PRESUPUESTO (SOFT DELETE / RESTORE)
+  async deleteQuote(id: string, permanent: boolean = false): Promise<boolean> {
+      if (permanent) {
+          const { error } = await supabase.from('quotes').delete().eq('id', id);
+          if (error) throw error;
+      } else {
+          // Soft
+          const { error } = await supabase.from('quotes').update({ is_deleted: true }).eq('id', id);
+          if (error) throw error;
+      }
+      return true;
+  }
+
+  async restoreQuote(id: string): Promise<boolean> {
+      const { error } = await supabase.from('quotes').update({ is_deleted: false }).eq('id', id);
       if (error) throw error;
       return true;
   }
 
-  // 4.c ACTUALIZAR ESTADO PRESUPUESTO
   async updateQuoteStatus(id: string, emailSent: boolean): Promise<boolean> {
       const { error } = await supabase
         .from('quotes')
@@ -347,7 +407,6 @@ class AppApi {
       return true;
   }
   
-  // 4.d REENVIAR EMAIL (Desde Admin)
   async resendEmail(id: string): Promise<string> {
     const { data: quote, error } = await supabase
         .from('quotes')
@@ -373,7 +432,6 @@ class AppApi {
     }
   }
 
-  // 5. ENVIAR CONTACTO
   async sendContact(form: ContactData): Promise<string> {
     const { error } = await supabase.from('messages').insert({
       name: form.nombre,
@@ -386,11 +444,9 @@ class AppApi {
     return "Mensaje guardado correctamente.";
   }
 
-  // 6. GESTIÓN INFO EMPRESA
   async getCompanyInfo(): Promise<CompanyInfo> {
       const { data, error } = await supabase.from('settings').select('*').single();
       
-      // Si no existe tabla o fila, devolvemos valores por defecto sin error para que la UI no falle
       if (error || !data) {
           return {
               address: 'Calle Ejemplo 123, 28000 Madrid',
@@ -402,6 +458,8 @@ class AppApi {
               partnerLogoUrl: '',
               isoLogoUrl: '',
               isoLinkUrl: '',
+              logo2Url: '',
+              logo2LinkUrl: '',
               addresses: [],
               facebookUrl: '',
               instagramUrl: '',
@@ -413,86 +471,102 @@ class AppApi {
   }
 
   async updateCompanyInfo(info: CompanyInfo): Promise<boolean> {
-      // Limpiamos el payload para no intentar actualizar el ID (que es PK y no debe cambiar)
       const { id, ...payload } = info;
-
-      // Check if row exists
       const { data } = await supabase.from('settings').select('id').single();
       
       if (data) {
-          // Update existing row
           const { error } = await supabase.from('settings').update(payload).eq('id', data.id);
           if (error) throw error;
       } else {
-          // Insert new row if none exists
           const { error } = await supabase.from('settings').insert(payload);
           if (error) throw error;
       }
       return true;
   }
 
-  // --- UTILS: GENERADOR PDF CLIENTE (MEJORADO) ---
-  private async generateClientSidePDF(data: QuotePayload): Promise<Blob> {
+  private async generateClientSidePDF(data: QuotePayload, productImgUrl?: string, features?: any[]): Promise<Blob> {
     const doc = new jsPDF();
     const companyInfo = await this.getCompanyInfo();
 
-    // Helper to load image
     const loadImage = (url: string): Promise<HTMLImageElement> => {
         return new Promise((resolve, reject) => {
             const img = new Image();
             img.crossOrigin = 'Anonymous';
-            img.src = url;
+            const sep = url.includes('?') ? '&' : '?';
+            img.src = `${url}${sep}t=${new Date().getTime()}`;
             img.onload = () => resolve(img);
             img.onerror = (e) => reject(e);
         });
     };
 
-    // --- CABECERA ---
-    // Fondo barra superior
-    doc.setFillColor(30, 58, 138); // Brand 900 (Dark Blue)
-    doc.rect(0, 0, 210, 35, 'F');
-
-    // Logo (Si existe)
+    // --- CABECERA (FONDO BLANCO) ---
+    // Logo Empresa (Izquierda)
     if (companyInfo.showLogo && companyInfo.logoUrl) {
         try {
             const img = await loadImage(companyInfo.logoUrl);
-            // Calculamos aspect ratio para que entre en 30mm de alto max
             const ratio = img.width / img.height;
-            const h = 20;
+            const h = 18; 
             const w = h * ratio;
-            doc.addImage(img, 'PNG', 15, 7.5, w, h);
+            const format = this.getImageFormat(companyInfo.logoUrl);
+            doc.addImage(img, format, 15, 10, w, h);
         } catch (e) {
-            console.warn("No se pudo cargar el logo para el PDF", e);
-            // Fallback texto
-            doc.setTextColor(255, 255, 255);
+            console.warn("Error loading main logo", e);
+            doc.setTextColor(30, 58, 138);
             doc.setFontSize(22);
             doc.setFont('helvetica', 'bold');
-            doc.text(companyInfo.brandName || "EcoQuote", 15, 22);
+            doc.text(companyInfo.brandName || "EcoQuote", 15, 25);
         }
     } else {
-        doc.setTextColor(255, 255, 255);
+        doc.setTextColor(30, 58, 138);
         doc.setFontSize(22);
         doc.setFont('helvetica', 'bold');
-        doc.text(companyInfo.brandName || "EcoQuote", 15, 22);
+        doc.text(companyInfo.brandName || "EcoQuote", 15, 25);
     }
 
-    // Datos Empresa (Derecha Cabecera)
-    doc.setFontSize(9);
-    doc.setTextColor(200, 220, 255);
+    // Logo 2 (Derecha del todo)
+    let logo2Width = 0;
+    if (companyInfo.logo2Url) {
+        try {
+            const l2Img = await loadImage(companyInfo.logo2Url);
+            const l2Ratio = l2Img.width / l2Img.height;
+            const l2H = 15;
+            const l2W = l2H * l2Ratio;
+            logo2Width = l2W;
+            const format = this.getImageFormat(companyInfo.logo2Url);
+            doc.addImage(l2Img, format, 195 - l2W, 10, l2W, l2H);
+        } catch (e) { console.warn("Error logo2", e); }
+    }
+
+    // Datos Empresa
+    let textX = 195 - logo2Width - 5; 
+    if (!logo2Width) textX = 195;
+
+    let y = 12;
+    doc.setFontSize(7);
+    doc.setTextColor(100, 100, 100);
     doc.setFont('helvetica', 'normal');
-    doc.text(companyInfo.phone, 195, 12, { align: 'right' });
-    doc.text(companyInfo.email, 195, 17, { align: 'right' });
+    
+    let addressText = companyInfo.address;
     if(companyInfo.addresses && companyInfo.addresses.length > 0) {
-        doc.text(companyInfo.addresses[0].value, 195, 22, { align: 'right' });
-    } else {
-        doc.text(companyInfo.address, 195, 22, { align: 'right' });
+        addressText = companyInfo.addresses[0].value; 
     }
+    
+    doc.text(addressText, textX, y, { align: 'right' });
+    y += 4;
+    doc.text(`Tel: ${companyInfo.phone}`, textX, y, { align: 'right' });
+    y += 4;
+    doc.text(`Email: ${companyInfo.email}`, textX, y, { align: 'right' });
+    
+    y = 45; 
 
-    let y = 50;
+    // --- TITULO Y FECHA ---
+    doc.setDrawColor(37, 99, 235); // Brand 600
+    doc.setLineWidth(0.5);
+    doc.line(15, y, 195, y); 
+    y += 10;
 
-    // --- TITULO ---
     doc.setTextColor(30, 58, 138);
-    doc.setFontSize(18);
+    doc.setFontSize(16);
     doc.setFont('helvetica', 'bold');
     doc.text("PRESUPUESTO", 15, y);
     doc.setFontSize(10);
@@ -502,40 +576,88 @@ class AppApi {
     
     y += 10;
 
-    // --- INFO CLIENTE (CAJA) ---
-    doc.setDrawColor(226, 232, 240); // Slate 200
+    // --- INFO CLIENTE ---
     doc.setFillColor(248, 250, 252); // Slate 50
-    doc.roundedRect(15, y, 180, 35, 3, 3, 'FD');
+    doc.setDrawColor(226, 232, 240);
+    doc.roundedRect(15, y, 180, 25, 2, 2, 'FD');
     
-    doc.setFontSize(10);
-    doc.setTextColor(71, 85, 105); // Slate 600
+    doc.setFontSize(9);
+    doc.setTextColor(71, 85, 105);
     doc.setFont('helvetica', 'bold');
-    doc.text("Datos del Cliente:", 20, y + 8);
+    doc.text("Cliente:", 20, y + 8);
     
     doc.setFont('helvetica', 'normal');
-    doc.setTextColor(30, 41, 59); // Slate 800
-    doc.text(data.client.nombre + " " + data.client.apellidos, 20, y + 16);
-    doc.text(`Tel: ${data.client.telefono}`, 20, y + 22);
-    doc.text(data.client.email, 20, y + 28);
+    doc.setTextColor(30, 41, 59);
+    doc.text(`${data.client.nombre} ${data.client.apellidos}`, 35, y + 8);
+    doc.text(`${data.client.direccion}, ${data.client.poblacion}`, 35, y + 14);
     
-    doc.text(data.client.direccion, 110, y + 16);
-    doc.text(`${data.client.cp} ${data.client.poblacion}`, 110, y + 22);
+    doc.text(`Email: ${data.client.email}`, 120, y + 8);
+    doc.text(`Tel: ${data.client.telefono}`, 120, y + 14);
 
-    y += 45;
+    y += 35;
 
-    // --- TABLA PRODUCTOS ---
-    // Header Row
-    doc.setFillColor(37, 99, 235); // Brand 600
+    // --- SECCIÓN VISUAL DEL PRODUCTO ---
+    if (productImgUrl) {
+        try {
+            const prodImg = await loadImage(productImgUrl);
+            const pRatio = prodImg.width / prodImg.height;
+            const imgW = 60;
+            const imgH = imgW / pRatio;
+            
+            const format = this.getImageFormat(productImgUrl);
+            doc.addImage(prodImg, format, 15, y, imgW, imgH);
+            
+            doc.setFontSize(14);
+            doc.setTextColor(30, 58, 138);
+            doc.setFont('helvetica', 'bold');
+            doc.text(`${data.brand} ${data.model}`, 80, y + 8);
+            
+            doc.setFontSize(10);
+            doc.setTextColor(100, 100, 100);
+            doc.setFont('helvetica', 'normal');
+            doc.text("Características Principales:", 80, y + 16);
+            
+            if (features && features.length > 0) {
+                let fy = y + 22;
+                doc.setFontSize(9);
+                doc.setTextColor(50, 50, 50);
+                features.slice(0, 4).forEach(f => {
+                    const title = typeof f.title === 'string' ? f.title : f.title['es'];
+                    // Use splitTextToSize to wrap text
+                    const splitTitle = doc.splitTextToSize(`• ${title}`, 110);
+                    doc.text(splitTitle, 85, fy);
+                    fy += (splitTitle.length * 5);
+                });
+            }
+
+            y += Math.max(imgH, 60) + 15;
+
+        } catch (e) { 
+            console.warn("Error loading product image", e);
+            y += 5;
+        }
+    } else {
+        doc.setFontSize(14);
+        doc.setTextColor(30, 58, 138);
+        doc.setFont('helvetica', 'bold');
+        doc.text(`${data.brand} ${data.model}`, 15, y);
+        y += 15;
+    }
+
+    if (y > 230) { doc.addPage(); y = 20; }
+
+    // --- TABLA DETALLES ---
+    doc.setFillColor(30, 58, 138);
     doc.rect(15, y, 180, 8, 'F');
     doc.setTextColor(255, 255, 255);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(9);
     doc.text("CONCEPTO", 20, y + 5.5);
-    doc.text("DETALLES", 100, y + 5.5);
+    doc.text("DESCRIPCIÓN", 100, y + 5.5);
     
     y += 8;
 
-    // Row 1: Equipo
+    // Row 1
     doc.setTextColor(30, 41, 59);
     doc.setFont('helvetica', 'bold');
     doc.text("Equipo", 20, y + 6);
@@ -545,17 +667,18 @@ class AppApi {
     doc.line(15, y + 10, 195, y + 10);
     y += 10;
 
-    // Row 2: Instalación (si hay extras, calculamos altura)
+    // Row 2
     doc.setFont('helvetica', 'bold');
     doc.text("Instalación y Extras", 20, y + 6);
     doc.setFont('helvetica', 'normal');
     
     if (data.extras && data.extras.length > 0) {
         data.extras.forEach((ex) => {
-            doc.text(`• ${ex}`, 100, y + 6);
-            y += 6;
+            const splitEx = doc.splitTextToSize(`• ${ex}`, 90);
+            doc.text(splitEx, 100, y + 6);
+            y += (splitEx.length * 6);
         });
-        y += 4; // Padding bottom
+        y += 4;
     } else {
         doc.text("Instalación Básica Incluida", 100, y + 6);
         y += 10;
@@ -564,6 +687,8 @@ class AppApi {
     doc.line(15, y, 195, y);
     y += 5;
 
+    if (y > 240) { doc.addPage(); y = 20; }
+
     // --- TOTAL ---
     y += 5;
     doc.setFontSize(12);
@@ -571,7 +696,7 @@ class AppApi {
     doc.setTextColor(30, 58, 138);
     doc.text("TOTAL PRESUPUESTO", 140, y, { align: 'right' });
     
-    doc.setFontSize(22);
+    doc.setFontSize(20);
     doc.text(`${data.price} €`, 195, y + 2, { align: 'right' });
     
     y += 6;
@@ -580,31 +705,53 @@ class AppApi {
     doc.setTextColor(100, 100, 100);
     doc.text("(IVA e Instalación Incluidos)", 195, y, { align: 'right' });
 
-    y += 20;
+    y += 15;
 
     // --- FINANCIACIÓN ---
     doc.setDrawColor(203, 213, 225); 
     doc.setFillColor(241, 245, 249);
-    doc.roundedRect(15, y, 180, 25, 2, 2, 'FD');
+    doc.roundedRect(15, y, 180, 20, 2, 2, 'FD');
     
     doc.setFontSize(10);
     doc.setTextColor(30, 58, 138);
     doc.setFont('helvetica', 'bold');
-    doc.text("Forma de Pago:", 20, y + 8);
+    doc.text("Forma de Pago:", 20, y + 7);
     
     const financingText = data.financing || "Pago al Contado";
     const lines = financingText.split('\n');
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(51, 65, 85);
-    lines.forEach((line, i) => {
-        doc.text(line, 20, y + 16 + (i * 5));
-    });
+    
+    doc.text(lines[0], 20, y + 13);
+    if(lines[1]) doc.text(lines[1], 100, y + 13);
+
+    y += 30;
+
+    // --- FIRMA ---
+    if (data.signature) {
+        if (y > 250) { doc.addPage(); y = 20; }
+
+        doc.setFontSize(10);
+        doc.setTextColor(30, 58, 138);
+        doc.setFont('helvetica', 'bold');
+        doc.text("Conformidad del Cliente:", 20, y);
+        
+        try {
+            doc.addImage(data.signature, 'PNG', 20, y + 5, 40, 20);
+            doc.setFontSize(7);
+            doc.setTextColor(150, 150, 150);
+            doc.setFont('helvetica', 'normal');
+            doc.text("Firma digital válida", 20, y + 28);
+        } catch (e) {
+            console.error("Firma error", e);
+        }
+    }
 
     // --- FOOTER LEGAL ---
     const pageHeight = doc.internal.pageSize.height;
     doc.setFontSize(7);
     doc.setTextColor(150, 150, 150);
-    const footerText = "Presupuesto válido por 15 días. " + (companyInfo.brandName || "EcoQuote") + " - " + companyInfo.email;
+    const footerText = "Presupuesto válido por 15 días. " + (companyInfo.brandName || "EcoQuote");
     doc.text(footerText, 105, pageHeight - 10, { align: 'center' });
 
     return doc.output('blob');

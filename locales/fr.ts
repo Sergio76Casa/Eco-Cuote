@@ -89,15 +89,22 @@ export default {
       "no_image": "Pas d'image"
     },
     "form": {
-      "title": "Détails du client",
+      "title": "Acceptation du Devis",
+      "review_title": "Détails de la commande",
+      "client_title": "Informations client",
+      "sign_title": "Signature de conformité",
+      "concept": "Concept",
+      "amount": "Montant",
       "name": "Prénom *",
       "surname": "Nom",
       "email": "Email *",
       "phone": "Téléphone *",
       "city": "Ville",
       "zip": "Code postal",
-      "cancel": "Annuler",
-      "submit": "Envoyer le devis"
+      "address": "Adresse complète",
+      "cancel": "Retour",
+      "submit": "Signer et Confirmer",
+      "legal_accept": "J'accepte le devis et les conditions de service."
     },
     "error": {
       "required_fields": "Veuillez remplir les champs obligatoires (*)",
@@ -154,4 +161,4 @@ export default {
     "placeholder": "Mot de passe",
     "enter": "Entrer"
   }
-};
+}

@@ -89,15 +89,22 @@ export default {
       "no_image": "Sense Imatge"
     },
     "form": {
-      "title": "Dades del Client",
+      "title": "Acceptació de Pressupost",
+      "review_title": "Detall de la Comanda",
+      "client_title": "Dades del Client",
+      "sign_title": "Firma de Conformitat",
+      "concept": "Concepte",
+      "amount": "Import",
       "name": "Nom *",
       "surname": "Cognoms",
       "email": "Email *",
       "phone": "Telèfon *",
       "city": "Població",
       "zip": "CP",
-      "cancel": "Cancel·lar",
-      "submit": "Enviar Pressupost"
+      "address": "Adreça Completa",
+      "cancel": "Tornar",
+      "submit": "Firmar i Confirmar Comanda",
+      "legal_accept": "Accepto el pressupost i les condicions de servei."
     },
     "error": {
       "required_fields": "Si us plau completa els camps obligatoris (*)",
@@ -115,7 +122,7 @@ export default {
     },
     "reparacion": {
       "title": "Reparació i Avaries",
-      "text": "Servei tècnic multimarca ràpid i eficaç. Diagnostiquem i reparem qualsevol avaria en temps rècord. Disposem d'estoc de recanvis originals per minimitzar el temps d'inactivitat del seu sistema de climatització."
+      "text": "Servei tècnic multimarca ràpid i eficaç. Diagnostiquem i reparem qualsevol avaria en temps rècord. Disposem d'estoc de recanvis originals per minimitzar el temps d'inactividad del seu sistema de climatització."
     },
     "garantias": {
       "title": "Garantia Total",
@@ -154,4 +161,4 @@ export default {
     "placeholder": "Contrasenya",
     "enter": "Entrar"
   }
-};
+}

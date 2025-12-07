@@ -46,6 +46,7 @@ export interface Product {
   pdfUrl?: string; // Link to the original uploaded PDF
   imageUrl?: string; // Product cover image
   brandLogoUrl?: string; // Brand logo image
+  is_deleted?: boolean; // Soft delete flag
 }
 
 export interface ClientData {
@@ -73,8 +74,12 @@ export interface SavedQuote {
   brand: string;
   model: string;
   price: number;
+  financing: string; // Added to display financing details in Admin
   emailSent: boolean;
   pdfUrl: string;
+  dniUrl?: string;
+  incomeUrl?: string;
+  is_deleted?: boolean; // Soft delete flag
 }
 
 export interface QuotePayload {
@@ -85,6 +90,9 @@ export interface QuotePayload {
   financing: string;
   client: ClientData;
   sendEmail: boolean;
+  signature?: string; // Base64 signature image
+  dniUrl?: string; // URL to uploaded DNI
+  incomeUrl?: string; // URL to uploaded Income proof
 }
 
 export interface CompanyAddress {
@@ -106,6 +114,8 @@ export interface CompanyInfo {
   partnerLogoUrl?: string; // Logo for footer (Endesa, RITE, etc)
   isoLogoUrl?: string; // Logo for ISO Certification
   isoLinkUrl?: string; // Link for ISO Certification
+  logo2Url?: string; // New Logo 2
+  logo2LinkUrl?: string; // Link for Logo 2
   // Social Media
   facebookUrl?: string;
   instagramUrl?: string;

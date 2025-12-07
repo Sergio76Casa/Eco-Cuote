@@ -4,7 +4,7 @@ import { api } from '../services/api';
 import { SavedQuote, Product, LocalizedText, CompanyInfo, CompanyAddress } from '../types';
 import { 
   LogOut, Package, FileText, AlertCircle, CheckCircle, 
-  Plus, Trash2, X, FileUp, Search, Sparkles, Loader2, Save, Edit, ChevronDown, ChevronUp, Image as ImageIcon, Award, Globe, Settings, ArrowLeft, MapPin, Share2, Facebook, Instagram, Twitter, Linkedin
+  Plus, Trash2, X, FileUp, Search, Sparkles, Loader2, Save, Edit, ChevronDown, ChevronUp, Image as ImageIcon, Award, Globe, Settings, ArrowLeft, MapPin, Share2, Facebook, Instagram, Twitter, Linkedin, CreditCard, Image, RotateCcw, Archive
 } from 'lucide-react';
 import { getLangText } from '../i18nUtils';
 
@@ -99,7 +99,6 @@ const LocalizedInput: React.FC<LocalizedInputProps> = ({ value, onChange, placeh
     );
 };
 
-// --- SUB-COMPONENT: COLLECTION EDITOR ---
 interface CollectionEditorProps {
     title: string;
     items: any[];
@@ -206,11 +205,13 @@ const CollectionEditor: React.FC<CollectionEditorProps> = ({ title, items, onCha
     );
 };
 
-
 const Admin: React.FC<AdminProps> = ({ onLogout }) => {
   const [activeTab, setActiveTab] = useState<'products' | 'quotes' | 'settings'>('products');
-  const [viewMode, setViewMode] = useState<'list' | 'form'>('list'); // New State for View Switching
+  const [viewMode, setViewMode] = useState<'list' | 'form'>('list');
   
+  // NEW: Trash/Recycle Bin Mode State
+  const [showTrash, setShowTrash] = useState(false);
+
   const [loading, setLoading] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
   const [message, setMessage] = useState<{ text: string, type: 'success' | 'error' } | null>(null);
@@ -226,12 +227,14 @@ const Admin: React.FC<AdminProps> = ({ onLogout }) => {
   const [companyInfo, setCompanyInfo] = useState<CompanyInfo>({ 
       address: '', addresses: [], phone: '', email: '', 
       brandName: '', companyDescription: '', showLogo: false, partnerLogoUrl: '', isoLogoUrl: '', isoLinkUrl: '',
+      logo2Url: '', logo2LinkUrl: '',
       facebookUrl: '', instagramUrl: '', twitterUrl: '', linkedinUrl: ''
   });
   
   const [companyLogoFile, setCompanyLogoFile] = useState<File | null>(null);
   const [partnerLogoFile, setPartnerLogoFile] = useState<File | null>(null);
   const [isoLogoFile, setIsoLogoFile] = useState<File | null>(null);
+  const [logo2File, setLogo2File] = useState<File | null>(null);
 
   // Edit State
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
@@ -258,15 +261,23 @@ const Admin: React.FC<AdminProps> = ({ onLogout }) => {
   const [logoFile, setLogoFile] = useState<File | null>(null);
 
   useEffect(() => {
-    if (activeTab === 'quotes') fetchHistory();
-    if (activeTab === 'products') fetchProducts();
+    // Reset trash toggle when switching tabs
+    setShowTrash(false);
+    if (activeTab === 'quotes') fetchHistory(false);
+    if (activeTab === 'products') fetchProducts(false);
     if (activeTab === 'settings') fetchSettings();
   }, [activeTab]);
 
-  const fetchHistory = async () => {
+  // Effect to reload when toggling trash
+  useEffect(() => {
+      if (activeTab === 'quotes') fetchHistory(showTrash);
+      if (activeTab === 'products') fetchProducts(showTrash);
+  }, [showTrash]);
+
+  const fetchHistory = async (deleted: boolean) => {
     setLoading(true);
     try {
-      const data = await api.getSavedQuotes();
+      const data = await api.getSavedQuotes(deleted);
       setQuotes(data);
     } catch (error) {
       setMessage({ text: 'Error al cargar historial.', type: 'error' });
@@ -275,10 +286,10 @@ const Admin: React.FC<AdminProps> = ({ onLogout }) => {
     }
   };
 
-  const fetchProducts = async () => {
+  const fetchProducts = async (deleted: boolean) => {
       setLoading(true);
       try {
-          const data = await api.getCatalog();
+          const data = await api.getCatalog(deleted);
           setDbProducts(data);
       } catch (error) {
           setMessage({ text: 'Error al cargar productos.', type: 'error' });
@@ -319,11 +330,17 @@ const Admin: React.FC<AdminProps> = ({ onLogout }) => {
               updatedInfo.isoLogoUrl = isoUrl;
           }
 
+          if (logo2File) {
+              const logo2Url = await api.uploadFile(logo2File, 'images');
+              updatedInfo.logo2Url = logo2Url;
+          }
+
           await api.updateCompanyInfo(updatedInfo);
           setMessage({ text: 'Configuración guardada.', type: 'success' });
           setCompanyLogoFile(null);
           setPartnerLogoFile(null);
           setIsoLogoFile(null);
+          setLogo2File(null);
       } catch(e) {
           setMessage({ text: 'Error al guardar.', type: 'error' });
       } finally {
@@ -331,7 +348,7 @@ const Admin: React.FC<AdminProps> = ({ onLogout }) => {
       }
   };
 
-  // --- ADDRESS HANDLERS ---
+  // ... (Address Handlers remain same) ...
   const addAddress = () => {
       const newAddresses = [...(companyInfo.addresses || [])];
       newAddresses.push({ label: 'Nueva Sede', value: '' });
@@ -464,7 +481,7 @@ const Admin: React.FC<AdminProps> = ({ onLogout }) => {
           }
 
           closeForm(); // Go back to list
-          fetchProducts(); 
+          fetchProducts(showTrash); 
       } catch (e: any) {
           setMessage({ text: 'Error guardando: ' + e.message, type: 'error' });
       } finally {
@@ -472,13 +489,14 @@ const Admin: React.FC<AdminProps> = ({ onLogout }) => {
       }
   };
 
+  // SOFT DELETE Logic
   const handleDeleteProduct = async (id: string) => {
-      if(!confirm("¿Seguro que quieres eliminar este producto?")) return;
+      if(!confirm("¿Mover a la papelera?")) return;
       setLoading(true);
       try {
-          await api.deleteProduct(id);
-          setMessage({ text: 'Producto eliminado.', type: 'success' });
-          fetchProducts();
+          await api.deleteProduct(id, false); // Soft delete
+          setMessage({ text: 'Producto movido a la papelera.', type: 'success' });
+          fetchProducts(showTrash);
       } catch(e: any) {
           setMessage({ text: 'Error al eliminar: ' + e.message, type: 'error' });
       } finally {
@@ -486,13 +504,40 @@ const Admin: React.FC<AdminProps> = ({ onLogout }) => {
       }
   };
 
+  const handleRestoreProduct = async (id: string) => {
+      setLoading(true);
+      try {
+          await api.restoreProduct(id);
+          setMessage({ text: 'Producto restaurado.', type: 'success' });
+          fetchProducts(showTrash);
+      } catch(e: any) {
+          setMessage({ text: 'Error al restaurar: ' + e.message, type: 'error' });
+      } finally {
+          setLoading(false);
+      }
+  };
+
+  const handleHardDeleteProduct = async (id: string) => {
+      if(!confirm("ADVERTENCIA: Esto borrará el producto para siempre. ¿Continuar?")) return;
+      setLoading(true);
+      try {
+          await api.deleteProduct(id, true); // Hard delete
+          setMessage({ text: 'Producto eliminado permanentemente.', type: 'success' });
+          fetchProducts(showTrash);
+      } catch(e: any) {
+          setMessage({ text: 'Error: ' + e.message, type: 'error' });
+      } finally {
+          setLoading(false);
+      }
+  };
+
   const handleDeleteQuote = async (id: string) => {
-    if(!confirm("¿Seguro que quieres borrar este presupuesto?")) return;
+    if(!confirm("¿Mover presupuesto a la papelera?")) return;
     setLoading(true);
     try {
-        await api.deleteQuote(id);
-        setMessage({ text: 'Presupuesto eliminado.', type: 'success' });
-        fetchHistory();
+        await api.deleteQuote(id, false);
+        setMessage({ text: 'Presupuesto movido a la papelera.', type: 'success' });
+        fetchHistory(showTrash);
     } catch(e: any) {
         setMessage({ text: 'Error: ' + e.message, type: 'error' });
     } finally {
@@ -500,11 +545,24 @@ const Admin: React.FC<AdminProps> = ({ onLogout }) => {
     }
   };
 
+  const handleRestoreQuote = async (id: string) => {
+      setLoading(true);
+      try {
+          await api.restoreQuote(id);
+          setMessage({ text: 'Presupuesto restaurado.', type: 'success' });
+          fetchHistory(showTrash);
+      } catch(e: any) {
+          setMessage({ text: 'Error al restaurar: ' + e.message, type: 'error' });
+      } finally {
+          setLoading(false);
+      }
+  };
+
   const toggleQuoteStatus = async (q: SavedQuote) => {
     setLoading(true);
     try {
         await api.updateQuoteStatus(q.id, !q.emailSent);
-        fetchHistory();
+        fetchHistory(showTrash);
     } catch(e: any) {
         setMessage({ text: 'Error actualizando estado: ' + e.message, type: 'error' });
     } finally {
@@ -531,25 +589,38 @@ const Admin: React.FC<AdminProps> = ({ onLogout }) => {
 
         {/* Global Tabs - ONLY VISIBLE IN LIST MODE */}
         {viewMode === 'list' && (
-            <div className="flex gap-1 mb-8 bg-white p-1 rounded-xl border border-slate-200 w-fit shadow-sm">
-                <button 
-                    onClick={() => setActiveTab('products')} 
-                    className={`px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 transition-all ${activeTab === 'products' ? 'bg-brand-100 text-brand-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-                >
-                    <Package size={16}/> Catálogo
-                </button>
-                <button 
-                    onClick={() => setActiveTab('quotes')} 
-                    className={`px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 transition-all ${activeTab === 'quotes' ? 'bg-brand-100 text-brand-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-                >
-                    <FileText size={16}/> Presupuestos
-                </button>
-                <button 
-                    onClick={() => setActiveTab('settings')} 
-                    className={`px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 transition-all ${activeTab === 'settings' ? 'bg-brand-100 text-brand-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-                >
-                    <Settings size={16}/> Configuración
-                </button>
+            <div className="flex justify-between items-center mb-8">
+                <div className="flex gap-1 bg-white p-1 rounded-xl border border-slate-200 w-fit shadow-sm">
+                    <button 
+                        onClick={() => setActiveTab('products')} 
+                        className={`px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 transition-all ${activeTab === 'products' ? 'bg-brand-100 text-brand-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                    >
+                        <Package size={16}/> Catálogo
+                    </button>
+                    <button 
+                        onClick={() => setActiveTab('quotes')} 
+                        className={`px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 transition-all ${activeTab === 'quotes' ? 'bg-brand-100 text-brand-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                    >
+                        <FileText size={16}/> Presupuestos
+                    </button>
+                    <button 
+                        onClick={() => setActiveTab('settings')} 
+                        className={`px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 transition-all ${activeTab === 'settings' ? 'bg-brand-100 text-brand-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                    >
+                        <Settings size={16}/> Configuración
+                    </button>
+                </div>
+
+                {/* Trash Toggle (Only for Products & Quotes) */}
+                {activeTab !== 'settings' && (
+                    <button 
+                        onClick={() => setShowTrash(!showTrash)}
+                        className={`px-4 py-2 rounded-xl font-bold text-sm flex items-center gap-2 transition-all border ${showTrash ? 'bg-red-50 text-red-600 border-red-200' : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300'}`}
+                    >
+                        {showTrash ? <RotateCcw size={16}/> : <Trash2 size={16}/>}
+                        {showTrash ? 'Ver Activos' : 'Ver Papelera'}
+                    </button>
+                )}
             </div>
         )}
 
@@ -568,16 +639,21 @@ const Admin: React.FC<AdminProps> = ({ onLogout }) => {
             {viewMode === 'list' && (
                 <>
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                        <h3 className="font-bold text-xl text-slate-800">Inventario de Equipos</h3>
-                        <button 
-                            onClick={openCreateForm}
-                            className="bg-brand-600 text-white px-4 py-2 rounded-xl font-bold flex items-center gap-2 hover:bg-brand-700 transition-colors shadow-lg shadow-brand-200"
-                        >
-                            <Plus size={18}/> Nuevo Producto
-                        </button>
+                        <h3 className="font-bold text-xl text-slate-800 flex items-center gap-2">
+                            {showTrash ? <Trash2 className="text-red-500"/> : <Package className="text-brand-500"/>}
+                            {showTrash ? 'Papelera de Reciclaje (Productos)' : 'Inventario de Equipos'}
+                        </h3>
+                        {!showTrash && (
+                            <button 
+                                onClick={openCreateForm}
+                                className="bg-brand-600 text-white px-4 py-2 rounded-xl font-bold flex items-center gap-2 hover:bg-brand-700 transition-colors shadow-lg shadow-brand-200"
+                            >
+                                <Plus size={18}/> Nuevo Producto
+                            </button>
+                        )}
                     </div>
 
-                    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                    <div className={`bg-white rounded-2xl border ${showTrash ? 'border-red-200' : 'border-slate-200'} shadow-sm overflow-hidden`}>
                         <table className="w-full text-sm text-left">
                             <thead className="bg-slate-50 text-slate-500 font-bold uppercase text-xs">
                                 <tr>
@@ -592,7 +668,7 @@ const Admin: React.FC<AdminProps> = ({ onLogout }) => {
                             <tbody className="divide-y divide-slate-100">
                                 {dbProducts.map(p => (
                                     <tr key={p.id} className="hover:bg-slate-50 group">
-                                        <td className="p-4 cursor-pointer" onClick={() => openEditForm(p)}>
+                                        <td className="p-4">
                                             <div className="flex items-center gap-3">
                                                 {p.imageUrl ? (
                                                     <img src={p.imageUrl} alt="" className="w-10 h-10 rounded-lg object-cover border border-slate-200 bg-white"/>
@@ -602,8 +678,8 @@ const Admin: React.FC<AdminProps> = ({ onLogout }) => {
                                                     </div>
                                                 )}
                                                 <div>
-                                                    <div className="font-bold text-brand-700 hover:underline">{p.brand}</div>
-                                                    <div className="text-slate-600 font-medium">{p.model}</div>
+                                                    <div className="font-bold text-slate-700">{p.brand}</div>
+                                                    <div className="text-slate-500 font-medium">{p.model}</div>
                                                 </div>
                                             </div>
                                         </td>
@@ -628,20 +704,41 @@ const Admin: React.FC<AdminProps> = ({ onLogout }) => {
                                         </td>
                                         <td className="p-4 text-right">
                                             <div className="flex justify-end gap-2">
-                                                <button 
-                                                    onClick={() => openEditForm(p)}
-                                                    className="text-slate-400 hover:text-brand-600 p-2 hover:bg-brand-50 rounded-lg transition-colors"
-                                                    title="Editar Completo"
-                                                >
-                                                    <Edit size={18}/>
-                                                </button>
-                                                <button 
-                                                    onClick={() => handleDeleteProduct(p.id)}
-                                                    className="text-slate-300 hover:text-red-600 p-2 hover:bg-red-50 rounded-lg transition-colors"
-                                                    title="Eliminar"
-                                                >
-                                                    <Trash2 size={18}/>
-                                                </button>
+                                                {showTrash ? (
+                                                    <>
+                                                        <button 
+                                                            onClick={() => handleRestoreProduct(p.id)}
+                                                            className="text-emerald-500 hover:text-emerald-700 p-2 hover:bg-emerald-50 rounded-lg transition-colors font-bold flex items-center gap-1 text-xs"
+                                                            title="Restaurar"
+                                                        >
+                                                            <RotateCcw size={16}/> Restaurar
+                                                        </button>
+                                                        <button 
+                                                            onClick={() => handleHardDeleteProduct(p.id)}
+                                                            className="text-red-400 hover:text-red-700 p-2 hover:bg-red-50 rounded-lg transition-colors"
+                                                            title="Eliminar Definitivamente"
+                                                        >
+                                                            <X size={18}/>
+                                                        </button>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <button 
+                                                            onClick={() => openEditForm(p)}
+                                                            className="text-slate-400 hover:text-brand-600 p-2 hover:bg-brand-50 rounded-lg transition-colors"
+                                                            title="Editar Completo"
+                                                        >
+                                                            <Edit size={18}/>
+                                                        </button>
+                                                        <button 
+                                                            onClick={() => handleDeleteProduct(p.id)}
+                                                            className="text-slate-300 hover:text-red-600 p-2 hover:bg-red-50 rounded-lg transition-colors"
+                                                            title="Mover a Papelera"
+                                                        >
+                                                            <Trash2 size={18}/>
+                                                        </button>
+                                                    </>
+                                                )}
                                             </div>
                                         </td>
                                     </tr>
@@ -656,17 +753,9 @@ const Admin: React.FC<AdminProps> = ({ onLogout }) => {
             {viewMode === 'form' && (
                 <div className="animate-in slide-in-from-right-4 fade-in duration-300">
                     <div className="bg-white rounded-3xl shadow-lg border border-slate-200 overflow-hidden">
-                        
-                        {/* Header */}
                         <div className="p-6 border-b border-slate-200 bg-white sticky top-0 z-20 flex justify-between items-center shadow-sm">
                             <div className="flex items-center gap-4">
-                                <button 
-                                    onClick={closeForm}
-                                    className="p-2 hover:bg-slate-100 rounded-full text-slate-500 transition-colors"
-                                    title="Volver"
-                                >
-                                    <ArrowLeft size={24}/>
-                                </button>
+                                <button onClick={closeForm} className="p-2 hover:bg-slate-100 rounded-full text-slate-500 transition-colors" title="Volver"><ArrowLeft size={24}/></button>
                                 <div>
                                     <h3 className="font-black text-2xl text-slate-800 flex items-center gap-2">
                                         {editingProductId ? 'Editar Producto' : 'Nuevo Producto'}
@@ -677,24 +766,14 @@ const Admin: React.FC<AdminProps> = ({ onLogout }) => {
                             </div>
                             <div className="flex gap-3">
                                 <button onClick={closeForm} className="hidden sm:block px-6 py-2.5 text-slate-500 font-bold hover:bg-slate-50 hover:text-slate-700 rounded-xl transition-colors">Cancelar</button>
-                                <button 
-                                    onClick={handleSaveProduct}
-                                    disabled={loading || aiLoading}
-                                    className="px-6 py-2.5 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl shadow-lg shadow-brand-200 flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed transition-all active:scale-[0.98]"
-                                >
-                                    {loading ? <Loader2 className="animate-spin" size={20}/> : <Save size={20}/>}
-                                    Guardar
+                                <button onClick={handleSaveProduct} disabled={loading || aiLoading} className="px-6 py-2.5 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl shadow-lg shadow-brand-200 flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed transition-all active:scale-[0.98]">
+                                    {loading ? <Loader2 className="animate-spin" size={20}/> : <Save size={20}/>} Guardar
                                 </button>
                             </div>
                         </div>
-
-                        {/* Form Body */}
                         <div className="p-8 space-y-10 bg-slate-50/50">
-                            
-                            {/* SECTION 1: IMPORTS & MEDIA */}
                             <div className="grid md:grid-cols-2 gap-10">
                                 <div className="space-y-6">
-                                    {/* AI Import */}
                                     <div className="bg-white p-6 rounded-2xl border border-brand-100 shadow-sm">
                                         <h4 className="font-bold text-slate-800 flex items-center gap-2 text-sm uppercase tracking-wider mb-4"><Sparkles size={16} className="text-brand-500"/> Importación Automática (IA)</h4>
                                         <div className={`transition-all ${loading ? 'opacity-60 pointer-events-none' : ''}`}>
@@ -707,168 +786,67 @@ const Admin: React.FC<AdminProps> = ({ onLogout }) => {
                                             ) : (
                                                 <div className="space-y-3">
                                                     <div className="flex items-center justify-between p-3 bg-brand-50 border border-brand-200 rounded-xl">
-                                                        <div className="flex items-center gap-3 overflow-hidden">
-                                                            <FileText size={20} className="text-brand-600 shrink-0"/>
-                                                            <span className="text-sm font-bold text-brand-900 truncate block">{pdfFile.name}</span>
-                                                        </div>
+                                                        <div className="flex items-center gap-3 overflow-hidden"><FileText size={20} className="text-brand-600 shrink-0"/><span className="text-sm font-bold text-brand-900 truncate block">{pdfFile.name}</span></div>
                                                         <button onClick={() => setPdfFile(null)} className="text-red-400 hover:text-red-600 p-1.5 hover:bg-red-50 rounded"><Trash2 size={16}/></button>
                                                     </div>
                                                     <button onClick={handleAnalyzePdf} disabled={aiLoading} className="w-full bg-brand-600 text-white text-sm font-bold py-2.5 rounded-xl flex items-center justify-center gap-2 hover:bg-brand-700 shadow-md">
-                                                        {aiLoading ? <Loader2 className="animate-spin" size={16}/> : <Sparkles size={16}/>}
-                                                        {aiLoading ? 'Analizando...' : 'Extraer Datos'}
+                                                        {aiLoading ? <Loader2 className="animate-spin" size={16}/> : <Sparkles size={16}/>} {aiLoading ? 'Analizando...' : 'Extraer Datos'}
                                                     </button>
                                                 </div>
                                             )}
                                         </div>
                                     </div>
-
-                                    {/* General Info */}
                                     <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-5">
                                         <h4 className="font-bold text-slate-800 text-sm uppercase tracking-wider mb-2">Datos Principales</h4>
                                         <div className="grid grid-cols-2 gap-5">
-                                            <div>
-                                                <label className="text-xs font-bold text-slate-500 mb-1.5 block uppercase">Marca</label>
-                                                <input 
-                                                    className="w-full bg-white border border-slate-300 text-slate-900 p-2.5 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none font-medium shadow-sm" 
-                                                    placeholder="Ej: Daikin"
-                                                    value={prodForm.brand} 
-                                                    onChange={e => setProdForm({...prodForm, brand: e.target.value})}
-                                                />
-                                            </div>
+                                            <div><label className="text-xs font-bold text-slate-500 mb-1.5 block uppercase">Marca</label><input className="w-full bg-white border border-slate-300 text-slate-900 p-2.5 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none font-medium shadow-sm" placeholder="Ej: Daikin" value={prodForm.brand} onChange={e => setProdForm({...prodForm, brand: e.target.value})}/></div>
                                             <div>
                                                 <label className="text-xs font-bold text-slate-500 mb-1.5 block uppercase">Tipo</label>
                                                 <div className="relative">
-                                                    <select 
-                                                        className="w-full bg-white border border-slate-300 text-slate-900 p-2.5 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none appearance-none font-medium shadow-sm" 
-                                                        value={prodForm.type} 
-                                                        onChange={e => setProdForm({...prodForm, type: e.target.value})}
-                                                    >
-                                                        <option value="Aire Acondicionado">Aire Acondicionado</option>
-                                                        <option value="Caldera">Caldera</option>
-                                                        <option value="Termo Eléctrico">Termo Eléctrico</option>
+                                                    <select className="w-full bg-white border border-slate-300 text-slate-900 p-2.5 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none appearance-none font-medium shadow-sm" value={prodForm.type} onChange={e => setProdForm({...prodForm, type: e.target.value})}>
+                                                        <option value="Aire Acondicionado">Aire Acondicionado</option><option value="Caldera">Caldera</option><option value="Termo Eléctrico">Termo Eléctrico</option>
                                                     </select>
                                                     <ChevronDown size={16} className="absolute right-3 top-3 text-slate-500 pointer-events-none"/>
                                                 </div>
                                             </div>
                                         </div>
-                                        <div>
-                                            <label className="text-xs font-bold text-slate-500 mb-1.5 block uppercase">Modelo (Serie)</label>
-                                            <input 
-                                                className="w-full bg-white border border-slate-300 text-slate-900 p-2.5 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none font-medium shadow-sm" 
-                                                placeholder="Ej: Serie Perfera"
-                                                value={prodForm.model} 
-                                                onChange={e => setProdForm({...prodForm, model: e.target.value})}
-                                            />
-                                        </div>
+                                        <div><label className="text-xs font-bold text-slate-500 mb-1.5 block uppercase">Modelo (Serie)</label><input className="w-full bg-white border border-slate-300 text-slate-900 p-2.5 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none font-medium shadow-sm" placeholder="Ej: Serie Perfera" value={prodForm.model} onChange={e => setProdForm({...prodForm, model: e.target.value})}/></div>
                                     </div>
                                 </div>
-
                                 <div className="space-y-6">
-                                    {/* Images */}
                                     <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
                                         <h4 className="font-bold text-slate-800 text-sm uppercase tracking-wider mb-4">Recursos Gráficos</h4>
                                         <div className="grid grid-cols-2 gap-6">
-                                            {/* Cover Image */}
                                             <div>
                                                 <label className="block text-xs font-bold text-slate-500 mb-2 uppercase">Portada</label>
                                                 {prodForm.imageUrl || imageFile ? (
-                                                    <div className="relative group bg-slate-50 rounded-xl border border-slate-200 h-40 flex items-center justify-center p-2">
-                                                        <img src={imageFile ? URL.createObjectURL(imageFile) : prodForm.imageUrl} className="w-full h-full object-contain"/>
-                                                        <button onClick={() => { setProdForm({...prodForm, imageUrl: ''}); setImageFile(null); }} className="absolute top-2 right-2 bg-white p-1.5 rounded-lg text-red-500 shadow-sm border border-slate-100 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity"><Trash2 size={16}/></button>
-                                                    </div>
+                                                    <div className="relative group bg-slate-50 rounded-xl border border-slate-200 h-40 flex items-center justify-center p-2"><img src={imageFile ? URL.createObjectURL(imageFile) : prodForm.imageUrl} className="w-full h-full object-contain"/><button onClick={() => { setProdForm({...prodForm, imageUrl: ''}); setImageFile(null); }} className="absolute top-2 right-2 bg-white p-1.5 rounded-lg text-red-500 shadow-sm border border-slate-100 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity"><Trash2 size={16}/></button></div>
                                                 ) : (
-                                                    <label className="border-2 border-dashed border-slate-200 rounded-xl h-40 flex flex-col items-center justify-center cursor-pointer hover:bg-slate-50 hover:border-slate-300 transition-all text-slate-400 bg-white">
-                                                        <ImageIcon size={24} className="mb-2"/>
-                                                        <span className="text-xs font-medium">Subir Imagen</span>
-                                                        <input type="file" accept="image/*" className="hidden" onChange={e => e.target.files && setImageFile(e.target.files[0])}/>
-                                                    </label>
+                                                    <label className="border-2 border-dashed border-slate-200 rounded-xl h-40 flex flex-col items-center justify-center cursor-pointer hover:bg-slate-50 hover:border-slate-300 transition-all text-slate-400 bg-white"><ImageIcon size={24} className="mb-2"/><span className="text-xs font-medium">Subir Imagen</span><input type="file" accept="image/*" className="hidden" onChange={e => e.target.files && setImageFile(e.target.files[0])}/></label>
                                                 )}
                                             </div>
-
-                                            {/* Brand Logo */}
                                             <div>
                                                 <label className="block text-xs font-bold text-slate-500 mb-2 uppercase">Logo Marca</label>
                                                 {prodForm.brandLogoUrl || logoFile ? (
-                                                    <div className="relative group bg-slate-50 rounded-xl border border-slate-200 h-40 flex items-center justify-center p-4">
-                                                        <img src={logoFile ? URL.createObjectURL(logoFile) : prodForm.brandLogoUrl} className="w-full h-full object-contain"/>
-                                                        <button onClick={() => { setProdForm({...prodForm, brandLogoUrl: ''}); setLogoFile(null); }} className="absolute top-2 right-2 bg-white p-1.5 rounded-lg text-red-500 shadow-sm border border-slate-100 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity"><Trash2 size={16}/></button>
-                                                    </div>
+                                                    <div className="relative group bg-slate-50 rounded-xl border border-slate-200 h-40 flex items-center justify-center p-4"><img src={logoFile ? URL.createObjectURL(logoFile) : prodForm.brandLogoUrl} className="w-full h-full object-contain"/><button onClick={() => { setProdForm({...prodForm, brandLogoUrl: ''}); setLogoFile(null); }} className="absolute top-2 right-2 bg-white p-1.5 rounded-lg text-red-500 shadow-sm border border-slate-100 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity"><Trash2 size={16}/></button></div>
                                                 ) : (
-                                                    <label className="border-2 border-dashed border-slate-200 rounded-xl h-40 flex flex-col items-center justify-center cursor-pointer hover:bg-slate-50 hover:border-slate-300 transition-all text-slate-400 bg-white">
-                                                        <Award size={24} className="mb-2"/>
-                                                        <span className="text-xs font-medium">Subir Logo</span>
-                                                        <input type="file" accept="image/*" className="hidden" onChange={e => e.target.files && setLogoFile(e.target.files[0])}/>
-                                                    </label>
+                                                    <label className="border-2 border-dashed border-slate-200 rounded-xl h-40 flex flex-col items-center justify-center cursor-pointer hover:bg-slate-50 hover:border-slate-300 transition-all text-slate-400 bg-white"><Award size={24} className="mb-2"/><span className="text-xs font-medium">Subir Logo</span><input type="file" accept="image/*" className="hidden" onChange={e => e.target.files && setLogoFile(e.target.files[0])}/></label>
                                                 )}
                                             </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-
-                            <div className="flex items-center gap-4 py-4">
-                                <hr className="flex-1 border-slate-300"/>
-                                <span className="text-xs font-bold text-slate-400 uppercase tracking-widest bg-slate-100 px-3 py-1 rounded-full border border-slate-200">Configuración Comercial</span>
-                                <hr className="flex-1 border-slate-300"/>
-                            </div>
-
-                            {/* SECTION 2: TABLES (FULL WIDTH) */}
+                            <div className="flex items-center gap-4 py-4"><hr className="flex-1 border-slate-300"/><span className="text-xs font-bold text-slate-400 uppercase tracking-widest bg-slate-100 px-3 py-1 rounded-full border border-slate-200">Configuración Comercial</span><hr className="flex-1 border-slate-300"/></div>
                             <div className="grid xl:grid-cols-2 gap-8">
-                                {/* Left Column */}
                                 <div className="space-y-8">
-                                    <CollectionEditor 
-                                        title="Variantes de Precio / Potencias"
-                                        items={prodForm.pricing}
-                                        onChange={(items) => setProdForm({...prodForm, pricing: items})}
-                                        fields={[
-                                            { key: 'name', label: 'Nombre Variante', type: 'localized', placeholder: 'Ej: 3.5 kW' },
-                                            { key: 'price', label: 'Precio (€)', type: 'number', width: 'w-32' }
-                                        ]}
-                                    />
-                                    
-                                    <CollectionEditor 
-                                        title="Características Técnicas"
-                                        items={prodForm.features}
-                                        onChange={(items) => setProdForm({...prodForm, features: items})}
-                                        fields={[
-                                            { key: 'title', label: 'Título', type: 'localized', placeholder: 'Ej: Wifi' },
-                                            { key: 'description', label: 'Descripción', type: 'localized', placeholder: 'Ej: Control app' }
-                                        ]}
-                                    />
+                                    <CollectionEditor title="Variantes de Precio / Potencias" items={prodForm.pricing} onChange={(items) => setProdForm({...prodForm, pricing: items})} fields={[{ key: 'name', label: 'Nombre Variante', type: 'localized', placeholder: 'Ej: 3.5 kW' }, { key: 'price', label: 'Precio (€)', type: 'number', width: 'w-32' }]} />
+                                    <CollectionEditor title="Características Técnicas" items={prodForm.features} onChange={(items) => setProdForm({...prodForm, features: items})} fields={[{ key: 'title', label: 'Título', type: 'localized', placeholder: 'Ej: Wifi' }, { key: 'description', label: 'Descripción', type: 'localized', placeholder: 'Ej: Control app' }]} />
                                 </div>
-
-                                {/* Right Column */}
                                 <div className="space-y-8">
-                                    <CollectionEditor 
-                                        title="Kits de Instalación"
-                                        items={prodForm.installationKits}
-                                        onChange={(items) => setProdForm({...prodForm, installationKits: items})}
-                                        fields={[
-                                            { key: 'name', label: 'Nombre Kit', type: 'localized' },
-                                            { key: 'price', label: 'Precio (€)', type: 'number', width: 'w-32' }
-                                        ]}
-                                    />
-
-                                    <CollectionEditor 
-                                        title="Extras Opcionales"
-                                        items={prodForm.extras}
-                                        onChange={(items) => setProdForm({...prodForm, extras: items})}
-                                        fields={[
-                                            { key: 'name', label: 'Nombre Extra', type: 'localized' },
-                                            { key: 'price', label: 'Precio (€)', type: 'number', width: 'w-32' }
-                                        ]}
-                                    />
-
-                                    <CollectionEditor 
-                                        title="Financiación"
-                                        items={prodForm.financing}
-                                        onChange={(items) => setProdForm({...prodForm, financing: items})}
-                                        fields={[
-                                            { key: 'label', label: 'Etiqueta', type: 'localized', placeholder: '12 Meses' },
-                                            { key: 'months', label: 'Meses', type: 'number', width: 'w-24' },
-                                            { key: 'coefficient', label: 'Coef.', type: 'number', width: 'w-28', placeholder: '0.087' }
-                                        ]}
-                                    />
+                                    <CollectionEditor title="Kits de Instalación" items={prodForm.installationKits} onChange={(items) => setProdForm({...prodForm, installationKits: items})} fields={[{ key: 'name', label: 'Nombre Kit', type: 'localized' }, { key: 'price', label: 'Precio (€)', type: 'number', width: 'w-32' }]} />
+                                    <CollectionEditor title="Extras Opcionales" items={prodForm.extras} onChange={(items) => setProdForm({...prodForm, extras: items})} fields={[{ key: 'name', label: 'Nombre Extra', type: 'localized' }, { key: 'price', label: 'Precio (€)', type: 'number', width: 'w-32' }]} />
+                                    <CollectionEditor title="Financiación" items={prodForm.financing} onChange={(items) => setProdForm({...prodForm, financing: items})} fields={[{ key: 'label', label: 'Etiqueta', type: 'localized', placeholder: '12 Meses' }, { key: 'months', label: 'Meses', type: 'number', width: 'w-24' }, { key: 'coefficient', label: 'Coef.', type: 'number', width: 'w-28', placeholder: '0.087' }]} />
                                 </div>
                             </div>
                         </div>
@@ -881,9 +859,12 @@ const Admin: React.FC<AdminProps> = ({ onLogout }) => {
         {/* --- TAB: QUOTES --- */}
         {activeTab === 'quotes' && viewMode === 'list' && (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
-             <div className="flex justify-between items-center">
-                <h3 className="font-bold text-xl text-slate-800">Registro de Presupuestos</h3>
-            </div>
+             <div className="flex justify-between items-center gap-4">
+                <h3 className="font-bold text-xl text-slate-800 flex items-center gap-2">
+                    {showTrash ? <Trash2 className="text-red-500"/> : <FileText className="text-brand-500"/>}
+                    {showTrash ? 'Papelera de Presupuestos (Clientes)' : 'Registro de Presupuestos'}
+                </h3>
+             </div>
             <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-3 focus-within:ring-2 focus-within:ring-brand-500/20 transition-shadow">
                <Search className="text-slate-400" size={20}/>
                <input 
@@ -893,13 +874,15 @@ const Admin: React.FC<AdminProps> = ({ onLogout }) => {
                  onChange={(e) => setFilterText(e.target.value)}
                />
             </div>
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            <div className={`bg-white rounded-2xl border ${showTrash ? 'border-red-200' : 'border-slate-200'} shadow-sm overflow-hidden`}>
                 <table className="w-full text-sm text-left">
                     <thead className="bg-slate-50 text-slate-500 font-bold uppercase text-xs">
                         <tr>
                             <th className="p-4">Fecha</th>
                             <th className="p-4">Cliente</th>
                             <th className="p-4">Equipo</th>
+                            <th className="p-4">Financiación</th>
+                            <th className="p-4 text-center">Docs</th>
                             <th className="p-4 text-right">Total</th>
                             <th className="p-4 text-center">Estado</th>
                             <th className="p-4 text-right">Acciones</th>
@@ -914,6 +897,36 @@ const Admin: React.FC<AdminProps> = ({ onLogout }) => {
                                     <div className="text-xs text-slate-500">{q.clientEmail}</div>
                                 </td>
                                 <td className="p-4 text-slate-700 font-medium">{q.brand} {q.model}</td>
+                                <td className="p-4">
+                                    {q.financing && q.financing.toLowerCase().includes('contado') ? (
+                                        <span className="bg-slate-100 text-slate-600 px-2 py-1 rounded text-xs font-bold border border-slate-200">Contado</span>
+                                    ) : (
+                                        (() => {
+                                            const match = q.financing ? q.financing.match(/(\d+)\s*(meses|cuotas)/i) : null;
+                                            return match ? (
+                                                <span className="bg-blue-50 text-blue-700 px-2 py-1 rounded text-xs font-bold border border-blue-200">{match[1]} Meses</span>
+                                            ) : (
+                                                <span className="bg-slate-50 text-slate-500 px-2 py-1 rounded text-xs font-medium truncate max-w-[120px] block" title={q.financing || ''}>
+                                                    {q.financing?.split('\n')[0] || 'Financiado'}
+                                                </span>
+                                            );
+                                        })()
+                                    )}
+                                </td>
+                                <td className="p-4 text-center">
+                                    <div className="flex justify-center gap-2">
+                                        {q.dniUrl ? (
+                                            <a href={q.dniUrl} target="_blank" className="p-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded transition-colors" title="Ver DNI">
+                                                <CreditCard size={16}/>
+                                            </a>
+                                        ) : <span className="w-7"/>}
+                                        {q.incomeUrl ? (
+                                            <a href={q.incomeUrl} target="_blank" className="p-1.5 bg-green-50 text-green-600 hover:bg-green-100 rounded transition-colors" title="Ver Nómina/Ingresos">
+                                                <Image size={16}/>
+                                            </a>
+                                        ) : <span className="w-7"/>}
+                                    </div>
+                                </td>
                                 <td className="p-4 text-right font-bold text-brand-600">{q.price} €</td>
                                 <td className="p-4 text-center">
                                      <button 
@@ -925,8 +938,20 @@ const Admin: React.FC<AdminProps> = ({ onLogout }) => {
                                 </td>
                                 <td className="p-4 text-right">
                                     <div className="flex justify-end gap-2">
-                                        {q.pdfUrl && <a href={q.pdfUrl} target="_blank" className="p-2 text-slate-400 hover:text-brand-600 hover:bg-brand-50 rounded-lg transition-colors"><FileText size={18}/></a>}
-                                        <button onClick={() => handleDeleteQuote(q.id)} className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"><Trash2 size={18}/></button>
+                                        {showTrash ? (
+                                            <button 
+                                                onClick={() => handleRestoreQuote(q.id)}
+                                                className="text-emerald-500 hover:text-emerald-700 p-2 hover:bg-emerald-50 rounded-lg transition-colors font-bold flex items-center gap-1 text-xs"
+                                                title="Restaurar"
+                                            >
+                                                <RotateCcw size={16}/> Restaurar
+                                            </button>
+                                        ) : (
+                                            <>
+                                                {q.pdfUrl && <a href={q.pdfUrl} target="_blank" className="p-2 text-slate-400 hover:text-brand-600 hover:bg-brand-50 rounded-lg transition-colors"><FileText size={18}/></a>}
+                                                <button onClick={() => handleDeleteQuote(q.id)} className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors" title="Mover a Papelera"><Trash2 size={18}/></button>
+                                            </>
+                                        )}
                                     </div>
                                 </td>
                             </tr>
@@ -937,7 +962,7 @@ const Admin: React.FC<AdminProps> = ({ onLogout }) => {
           </div>
         )}
 
-        {/* --- TAB: SETTINGS --- */}
+        {/* ... (Settings Tab remains same) ... */}
         {activeTab === 'settings' && viewMode === 'list' && (
             <div className="max-w-3xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-2">
                 
@@ -1059,6 +1084,37 @@ const Admin: React.FC<AdminProps> = ({ onLogout }) => {
                                     onChange={e => setCompanyInfo({...companyInfo, isoLinkUrl: e.target.value})}
                                 />
                             </div>
+
+                            {/* Logo 2 Upload */}
+                            <div className="space-y-2 pt-2 border-t border-slate-100">
+                                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Logo Partner 2 / Adicional</label>
+                                {companyInfo.logo2Url || logo2File ? (
+                                    <div className="relative group bg-slate-800 rounded-xl border border-slate-700 h-24 flex items-center justify-center p-4">
+                                        <img 
+                                            src={logo2File ? URL.createObjectURL(logo2File) : companyInfo.logo2Url} 
+                                            className="max-h-full max-w-full object-contain"
+                                        />
+                                        <button 
+                                            onClick={() => { setCompanyInfo({...companyInfo, logo2Url: ''}); setLogo2File(null); }} 
+                                            className="absolute top-2 right-2 bg-white p-1.5 rounded-lg text-red-500 shadow-sm border border-slate-100 hover:text-red-600 transition-colors"
+                                        >
+                                            <Trash2 size={14}/>
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <label className="border-2 border-dashed border-slate-300 rounded-xl h-24 flex flex-col items-center justify-center cursor-pointer hover:bg-slate-50 hover:border-slate-400 transition-all text-slate-400 bg-white">
+                                        <ImageIcon size={20} className="mb-1"/>
+                                        <span className="text-[10px] font-medium">Subir Logo 2 (PNG/SVG)</span>
+                                        <input type="file" accept="image/*" className="hidden" onChange={e => e.target.files && setLogo2File(e.target.files[0])}/>
+                                    </label>
+                                )}
+                                <input
+                                    className="w-full text-xs border border-slate-300 rounded-lg p-2 mt-2"
+                                    placeholder="Enlace Logo 2 (https://...)"
+                                    value={companyInfo.logo2LinkUrl || ''}
+                                    onChange={e => setCompanyInfo({...companyInfo, logo2LinkUrl: e.target.value})}
+                                />
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1067,7 +1123,6 @@ const Admin: React.FC<AdminProps> = ({ onLogout }) => {
                 <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm">
                     <h3 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2"><Settings size={20}/> Datos de Contacto</h3>
                     <div className="space-y-6">
-                        
                         {/* Multiple Addresses Management */}
                         <div>
                             <div className="flex justify-between items-center mb-3">

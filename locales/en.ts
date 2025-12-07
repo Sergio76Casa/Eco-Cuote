@@ -1,3 +1,4 @@
+
 export default {
   "nav": {
     "home": "Home",
@@ -89,19 +90,30 @@ export default {
       "no_image": "No Image"
     },
     "form": {
-      "title": "Client Details",
+      "title": "Quote Acceptance",
+      "review_title": "Order Details",
+      "client_title": "Client Information",
+      "sign_title": "Conformity Signature",
+      "concept": "Concept",
+      "amount": "Amount",
       "name": "Name *",
       "surname": "Surname",
       "email": "Email *",
       "phone": "Phone *",
       "city": "City",
       "zip": "Zip Code",
-      "cancel": "Cancel",
-      "submit": "Send Quote"
+      "address": "Full Address",
+      "cancel": "Go Back",
+      "submit": "Sign & Confirm Order",
+      "legal_accept": "I accept the quote and service conditions.",
+      "financing_docs_title": "Financing Documentation",
+      "dni": "ID Card / DNI (Front & Back) *",
+      "income": "Proof of Income (Payslip/Pension) *"
     },
     "error": {
       "required_fields": "Please complete required fields (*)",
-      "save_error": "Error saving"
+      "save_error": "Error saving",
+      "docs_required": "Financing requires ID and Proof of Income."
     }
   },
   "info": {
@@ -154,4 +166,4 @@ export default {
     "placeholder": "Password",
     "enter": "Enter"
   }
-};
+}

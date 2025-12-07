@@ -537,8 +537,8 @@ const App: React.FC = () => {
                     </div>
                     
                     {/* Certifications & Partners (Combined Zone) */}
-                    {(companyInfo.partnerLogoUrl || companyInfo.isoLogoUrl) && (
-                        <div className="mt-6 pt-6 border-t border-slate-800 flex items-center gap-4">
+                    {(companyInfo.partnerLogoUrl || companyInfo.isoLogoUrl || companyInfo.logo2Url) && (
+                        <div className="mt-6 pt-6 border-t border-slate-800 flex flex-wrap items-center gap-4">
                             {companyInfo.partnerLogoUrl && (
                                 <img src={companyInfo.partnerLogoUrl} alt="Partner" className="h-8 w-auto opacity-70 hover:opacity-100 transition-opacity grayscale hover:grayscale-0" />
                             )}
@@ -549,6 +549,15 @@ const App: React.FC = () => {
                                     </a>
                                 ) : (
                                     <img src={companyInfo.isoLogoUrl} alt="ISO Certified" className="h-10 w-auto opacity-80 hover:opacity-100 transition-opacity" />
+                                )
+                            )}
+                            {companyInfo.logo2Url && (
+                                companyInfo.logo2LinkUrl ? (
+                                    <a href={companyInfo.logo2LinkUrl} target="_blank" rel="noopener noreferrer" className="hover:opacity-100 opacity-80 transition-opacity">
+                                        <img src={companyInfo.logo2Url} alt="Additional Logo" className="h-10 w-auto" />
+                                    </a>
+                                ) : (
+                                    <img src={companyInfo.logo2Url} alt="Additional Logo" className="h-10 w-auto opacity-80 hover:opacity-100 transition-opacity" />
                                 )
                             )}
                         </div>

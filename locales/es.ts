@@ -1,3 +1,4 @@
+
 export default {
   "nav": {
     "home": "Inicio",
@@ -89,19 +90,30 @@ export default {
       "no_image": "Sin Imagen"
     },
     "form": {
-      "title": "Datos del Cliente",
+      "title": "Aceptación de Presupuesto",
+      "review_title": "Detalle del Pedido",
+      "client_title": "Datos del Cliente",
+      "sign_title": "Firma de Conformidad",
+      "concept": "Concepto",
+      "amount": "Importe",
       "name": "Nombre *",
       "surname": "Apellidos",
       "email": "Email *",
       "phone": "Teléfono *",
       "city": "Población",
       "zip": "CP",
-      "cancel": "Cancelar",
-      "submit": "Enviar Presupuesto"
+      "address": "Dirección Completa",
+      "cancel": "Volver",
+      "submit": "Firmar y Confirmar Pedido",
+      "legal_accept": "Acepto el presupuesto y las condiciones de servicio.",
+      "financing_docs_title": "Documentación para Financiación",
+      "dni": "Foto DNI / NIE (Ambas caras) *",
+      "income": "Justificante de Ingresos (Nómina/Pensión) *"
     },
     "error": {
       "required_fields": "Por favor completa los campos obligatorios (*)",
-      "save_error": "Error al guardar"
+      "save_error": "Error al guardar",
+      "docs_required": "Para financiar es obligatorio adjuntar DNI y Justificante de ingresos."
     }
   },
   "info": {
@@ -127,7 +139,7 @@ export default {
     },
     "cookies": {
       "title": "Política de Cookies",
-      "text": "Utilizamos cookies propias y de terceros para mejorar la experiencia de navegación y ofrecerle contenidos personalizados. Puede configurar o rechazar su uso en cualquier momento desde las opciones de su navegador."
+      "text": "Utilizamos cookies propias y de terceros para mejorar la experiencia de navegación y ofrecerle contenidos personalizados. Puede configurar o rechazar su uso en cualquier momento desde las opciones de votre navigateur."
     },
     "avisoLegal": {
       "title": "Aviso Legal",
@@ -154,4 +166,4 @@ export default {
     "placeholder": "Contraseña",
     "enter": "Entrar"
   }
-};
+}
