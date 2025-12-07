@@ -526,7 +526,13 @@ const App: React.FC = () => {
                                 <img src={companyInfo.partnerLogoUrl} alt="Partner" className="h-8 w-auto opacity-70 hover:opacity-100 transition-opacity grayscale hover:grayscale-0" />
                             )}
                             {companyInfo.isoLogoUrl && (
-                                <img src={companyInfo.isoLogoUrl} alt="ISO Certified" className="h-10 w-auto opacity-80 hover:opacity-100 transition-opacity" />
+                                companyInfo.isoLinkUrl ? (
+                                    <a href={companyInfo.isoLinkUrl} target="_blank" rel="noopener noreferrer" className="hover:opacity-100 opacity-80 transition-opacity">
+                                        <img src={companyInfo.isoLogoUrl} alt="ISO Certified" className="h-10 w-auto" />
+                                    </a>
+                                ) : (
+                                    <img src={companyInfo.isoLogoUrl} alt="ISO Certified" className="h-10 w-auto opacity-80 hover:opacity-100 transition-opacity" />
+                                )
                             )}
                         </div>
                     )}

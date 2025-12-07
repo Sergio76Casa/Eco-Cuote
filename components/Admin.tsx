@@ -219,7 +219,7 @@ const Admin: React.FC<AdminProps> = ({ onLogout }) => {
   // Settings State
   const [companyInfo, setCompanyInfo] = useState<CompanyInfo>({ 
       address: '', phone: '', email: '', 
-      brandName: '', companyDescription: '', showLogo: false, partnerLogoUrl: '', isoLogoUrl: '' 
+      brandName: '', companyDescription: '', showLogo: false, partnerLogoUrl: '', isoLogoUrl: '', isoLinkUrl: '' 
   });
   
   const [companyLogoFile, setCompanyLogoFile] = useState<File | null>(null);
@@ -1028,6 +1028,12 @@ const Admin: React.FC<AdminProps> = ({ onLogout }) => {
                                         <input type="file" accept="image/*" className="hidden" onChange={e => e.target.files && setIsoLogoFile(e.target.files[0])}/>
                                     </label>
                                 )}
+                                <input
+                                    className="w-full text-xs border border-slate-300 rounded-lg p-2 mt-2"
+                                    placeholder="Enlace certificado (https://...)"
+                                    value={companyInfo.isoLinkUrl || ''}
+                                    onChange={e => setCompanyInfo({...companyInfo, isoLinkUrl: e.target.value})}
+                                />
                             </div>
                         </div>
                     </div>

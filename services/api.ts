@@ -113,7 +113,7 @@ class AppApi {
         const ai = new GoogleGenAI({ apiKey });
         
         // 3. Define Prompt
-        const prompt = `Eres un experto en climatización y traducción técnica. Analiza el PDF adjunto y extrae los datos.
+        const prompt = `Eres un experto en climatización y traducción técnica. Analiza el PDF adjunto y extrae los datos técnicos y comerciales en formato JSON estrictamente válido.
         
         IMPORTANTE: Para todos los campos de texto visibles al usuario (nombre, título, descripción, etiquetas), DEBES generar un objeto con traducciones en 4 idiomas: Español (es), Inglés (en), Catalán (ca) y Francés (fr).
 
@@ -400,7 +400,8 @@ class AppApi {
               showLogo: false,
               companyDescription: 'Expertos en soluciones de climatización eficiente. Presupuestos transparentes, instalación profesional y las mejores marcas del mercado.',
               partnerLogoUrl: '',
-              isoLogoUrl: ''
+              isoLogoUrl: '',
+              isoLinkUrl: ''
           };
       }
       return data;
