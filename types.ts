@@ -92,4 +92,9 @@ export interface CompanyInfo {
   address: string;
   phone: string;
   email: string;
+  // New Branding Fields
+  logoUrl?: string;
+  brandName?: string; // e.g. "EcoQuote"
+  companyDescription?: string;
+  showLogo?: boolean; // true = show img, false = show text
 }

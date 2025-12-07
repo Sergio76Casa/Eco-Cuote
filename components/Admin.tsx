@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
-import { SavedQuote, Product, LocalizedText } from '../types';
+import { SavedQuote, Product, LocalizedText, CompanyInfo } from '../types';
 import { 
   LogOut, Package, FileText, AlertCircle, CheckCircle, 
   Plus, Trash2, X, FileUp, Search, Sparkles, Loader2, Save, Edit, ChevronDown, ChevronUp, Image as ImageIcon, Award, Globe, Settings, ArrowLeft
@@ -217,7 +217,12 @@ const Admin: React.FC<AdminProps> = ({ onLogout }) => {
   const [dbProducts, setDbProducts] = useState<Product[]>([]);
   
   // Settings State
-  const [companyInfo, setCompanyInfo] = useState({ address: '', phone: '', email: '' });
+  const [companyInfo, setCompanyInfo] = useState<CompanyInfo>({ 
+      address: '', phone: '', email: '', 
+      brandName: '', companyDescription: '', showLogo: false 
+  });
+  
+  const [companyLogoFile, setCompanyLogoFile] = useState<File | null>(null);
 
   // Edit State
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
@@ -288,8 +293,16 @@ const Admin: React.FC<AdminProps> = ({ onLogout }) => {
   const handleSaveSettings = async () => {
       setLoading(true);
       try {
-          await api.updateCompanyInfo(companyInfo);
+          let updatedInfo = { ...companyInfo };
+          
+          if (companyLogoFile) {
+              const logoUrl = await api.uploadFile(companyLogoFile, 'images');
+              updatedInfo.logoUrl = logoUrl;
+          }
+
+          await api.updateCompanyInfo(updatedInfo);
           setMessage({ text: 'Configuración guardada.', type: 'success' });
+          setCompanyLogoFile(null);
       } catch(e) {
           setMessage({ text: 'Error al guardar.', type: 'error' });
       } finally {
@@ -888,46 +901,115 @@ const Admin: React.FC<AdminProps> = ({ onLogout }) => {
 
         {/* --- TAB: SETTINGS --- */}
         {activeTab === 'settings' && viewMode === 'list' && (
-            <div className="max-w-2xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-2">
+            <div className="max-w-3xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-2">
+                
+                {/* BRANDING SECTION */}
                 <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm">
-                    <h3 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2"><Settings size={20}/> Datos de Contacto (Footer)</h3>
+                    <h3 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2"><Award size={20}/> Identidad de Marca</h3>
+                    <div className="grid md:grid-cols-2 gap-8">
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Nombre de la Empresa</label>
+                                <input 
+                                    className="w-full border border-slate-300 rounded-lg p-3 outline-none focus:ring-2 focus:ring-brand-500 text-slate-900"
+                                    value={companyInfo.brandName}
+                                    onChange={e => setCompanyInfo({...companyInfo, brandName: e.target.value})}
+                                    placeholder="EcoQuote"
+                                />
+                            </div>
+                            <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg border border-slate-200">
+                                <span className="text-sm font-bold text-slate-600 flex-1">Mostrar Logo en Web</span>
+                                <label className="relative inline-flex items-center cursor-pointer">
+                                    <input 
+                                        type="checkbox" 
+                                        className="sr-only peer" 
+                                        checked={companyInfo.showLogo || false}
+                                        onChange={e => setCompanyInfo({...companyInfo, showLogo: e.target.checked})}
+                                    />
+                                    <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-600"></div>
+                                </label>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Descripción (Footer)</label>
+                                <textarea 
+                                    className="w-full border border-slate-300 rounded-lg p-3 outline-none focus:ring-2 focus:ring-brand-500 text-slate-900 h-24 resize-none text-sm"
+                                    value={companyInfo.companyDescription}
+                                    onChange={e => setCompanyInfo({...companyInfo, companyDescription: e.target.value})}
+                                    placeholder="Expertos en soluciones..."
+                                />
+                            </div>
+                        </div>
+
+                        <div className="space-y-4">
+                            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Logo de Empresa</label>
+                            {companyInfo.logoUrl || companyLogoFile ? (
+                                <div className="relative group bg-slate-100 rounded-xl border border-slate-200 h-40 flex items-center justify-center p-4">
+                                    <img 
+                                        src={companyLogoFile ? URL.createObjectURL(companyLogoFile) : companyInfo.logoUrl} 
+                                        className="max-h-full max-w-full object-contain"
+                                    />
+                                    <button 
+                                        onClick={() => { setCompanyInfo({...companyInfo, logoUrl: ''}); setCompanyLogoFile(null); }} 
+                                        className="absolute top-2 right-2 bg-white p-1.5 rounded-lg text-red-500 shadow-sm border border-slate-100 hover:text-red-600 transition-colors"
+                                    >
+                                        <Trash2 size={16}/>
+                                    </button>
+                                </div>
+                            ) : (
+                                <label className="border-2 border-dashed border-slate-300 rounded-xl h-40 flex flex-col items-center justify-center cursor-pointer hover:bg-slate-50 hover:border-slate-400 transition-all text-slate-400 bg-white">
+                                    <ImageIcon size={24} className="mb-2"/>
+                                    <span className="text-xs font-medium">Subir Logo (PNG/SVG)</span>
+                                    <input type="file" accept="image/*" className="hidden" onChange={e => e.target.files && setCompanyLogoFile(e.target.files[0])}/>
+                                </label>
+                            )}
+                            <p className="text-[10px] text-slate-400 leading-tight">Recomendado: Imagen con fondo transparente (PNG) y formato horizontal.</p>
+                        </div>
+                    </div>
+                </div>
+
+                {/* CONTACT SECTION */}
+                <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm">
+                    <h3 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2"><Settings size={20}/> Datos de Contacto</h3>
                     <div className="space-y-4">
                         <div>
                             <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Dirección Física</label>
                             <input 
-                                className="w-full border border-slate-300 rounded-lg p-3 outline-none focus:ring-2 focus:ring-brand-500"
+                                className="w-full border border-slate-300 rounded-lg p-3 outline-none focus:ring-2 focus:ring-brand-500 text-slate-900"
                                 value={companyInfo.address}
                                 onChange={e => setCompanyInfo({...companyInfo, address: e.target.value})}
                                 placeholder="Ej: Calle Principal 123, Madrid"
                             />
                         </div>
-                        <div>
-                            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Teléfono</label>
-                            <input 
-                                className="w-full border border-slate-300 rounded-lg p-3 outline-none focus:ring-2 focus:ring-brand-500"
-                                value={companyInfo.phone}
-                                onChange={e => setCompanyInfo({...companyInfo, phone: e.target.value})}
-                                placeholder="Ej: +34 600 000 000"
-                            />
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Teléfono</label>
+                                <input 
+                                    className="w-full border border-slate-300 rounded-lg p-3 outline-none focus:ring-2 focus:ring-brand-500 text-slate-900"
+                                    value={companyInfo.phone}
+                                    onChange={e => setCompanyInfo({...companyInfo, phone: e.target.value})}
+                                    placeholder="Ej: +34 600 000 000"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Email</label>
+                                <input 
+                                    className="w-full border border-slate-300 rounded-lg p-3 outline-none focus:ring-2 focus:ring-brand-500 text-slate-900"
+                                    value={companyInfo.email}
+                                    onChange={e => setCompanyInfo({...companyInfo, email: e.target.value})}
+                                    placeholder="Ej: info@miempresa.com"
+                                />
+                            </div>
                         </div>
-                        <div>
-                            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Email</label>
-                            <input 
-                                className="w-full border border-slate-300 rounded-lg p-3 outline-none focus:ring-2 focus:ring-brand-500"
-                                value={companyInfo.email}
-                                onChange={e => setCompanyInfo({...companyInfo, email: e.target.value})}
-                                placeholder="Ej: info@miempresa.com"
-                            />
-                        </div>
-                        <button 
-                            onClick={handleSaveSettings}
-                            disabled={loading}
-                            className="w-full bg-brand-600 text-white font-bold py-3 rounded-xl mt-4 hover:bg-brand-700 transition-colors flex justify-center items-center gap-2"
-                        >
-                            {loading ? <Loader2 className="animate-spin"/> : <Save size={18}/>} Guardar Configuración
-                        </button>
                     </div>
                 </div>
+
+                <button 
+                    onClick={handleSaveSettings}
+                    disabled={loading}
+                    className="w-full bg-brand-600 text-white font-bold py-3 rounded-xl mt-4 hover:bg-brand-700 transition-colors flex justify-center items-center gap-2 shadow-lg shadow-brand-200"
+                >
+                    {loading ? <Loader2 className="animate-spin"/> : <Save size={18}/>} Guardar Toda la Configuración
+                </button>
             </div>
         )}
       </div>

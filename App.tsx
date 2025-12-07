@@ -1,6 +1,7 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { api } from './services/api';
-import { Product, ContactData } from './types';
+import { Product, ContactData, CompanyInfo } from './types';
 import ProductCard from './components/ProductCard';
 import Calculator from './components/Calculator';
 import Admin from './components/Admin';
@@ -48,7 +49,7 @@ const App: React.FC = () => {
 
   // Info Modal (Services & Legal) - Stores KEY of active info
   const [activeInfoKey, setActiveInfoKey] = useState<string | null>(null);
-  const [companyInfo, setCompanyInfo] = useState({ address: '', phone: '', email: '' });
+  const [companyInfo, setCompanyInfo] = useState<CompanyInfo>({ address: '', phone: '', email: '' });
 
   useEffect(() => {
     if (view === 'home') {
@@ -186,7 +187,7 @@ const App: React.FC = () => {
       {/* Header Navigation */}
       <header className="bg-white/80 backdrop-blur-md shadow-sm border-b border-slate-200/60 sticky top-0 z-50 transition-all">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-20 flex items-center justify-between">
-            {/* Logo */}
+            {/* Logo / Brand */}
             <div 
                 className="flex items-center gap-3 cursor-pointer select-none group z-50"
                 onClick={() => {
@@ -196,13 +197,19 @@ const App: React.FC = () => {
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
             >
-                <div className="w-10 h-10 bg-brand-600 rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-brand-200 group-hover:scale-110 transition-transform">
-                    E
-                </div>
-                <div className="flex flex-col">
-                    <span className="font-black text-xl text-brand-700 leading-none tracking-tight">EcoQuote</span>
-                    <span className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-widest">Climatización</span>
-                </div>
+                {companyInfo.showLogo && companyInfo.logoUrl ? (
+                    <img src={companyInfo.logoUrl} alt={companyInfo.brandName} className="h-12 w-auto object-contain" />
+                ) : (
+                    <>
+                        <div className="w-10 h-10 bg-brand-600 rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-brand-200 group-hover:scale-110 transition-transform">
+                            {(companyInfo.brandName || "Eco").charAt(0).toUpperCase()}
+                        </div>
+                        <div className="flex flex-col">
+                            <span className="font-black text-xl text-brand-700 leading-none tracking-tight">{companyInfo.brandName || "EcoQuote"}</span>
+                            <span className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-widest">Climatización</span>
+                        </div>
+                    </>
+                )}
             </div>
             
             {/* Desktop Navigation */}
@@ -491,11 +498,19 @@ const App: React.FC = () => {
                 {/* Brand Column */}
                 <div className="space-y-4">
                     <div className="flex items-center gap-2 font-black text-2xl text-white">
-                        <div className="w-10 h-10 bg-brand-600 rounded-xl flex items-center justify-center text-white font-bold">E</div>
-                        EcoQuote
+                        {companyInfo.showLogo && companyInfo.logoUrl ? (
+                            <img src={companyInfo.logoUrl} alt={companyInfo.brandName} className="h-10 w-auto object-contain brightness-0 invert" />
+                        ) : (
+                            <>
+                                <div className="w-10 h-10 bg-brand-600 rounded-xl flex items-center justify-center text-white font-bold">
+                                    {(companyInfo.brandName || "Eco").charAt(0).toUpperCase()}
+                                </div>
+                                {companyInfo.brandName || "EcoQuote"}
+                            </>
+                        )}
                     </div>
                     <p className="text-slate-400 text-sm leading-relaxed">
-                        {t('footer.brand_desc')}
+                        {companyInfo.companyDescription || t('footer.brand_desc')}
                     </p>
                     <div className="flex gap-4 pt-2">
                         <a href="#" className="p-2 bg-slate-800 rounded-lg hover:bg-brand-600 hover:text-white transition-colors"><Facebook size={18}/></a>
@@ -546,7 +561,7 @@ const App: React.FC = () => {
             </div>
 
             <div className="border-t border-slate-800 pt-8 mt-12 text-center">
-                <p className="text-xs text-slate-500">© {new Date().getFullYear()} EcoQuote Climatización S.L. {t('footer.rights')}</p>
+                <p className="text-xs text-slate-500">© {new Date().getFullYear()} {companyInfo.brandName || "EcoQuote Climatización S.L."} {t('footer.rights')}</p>
             </div>
         </div>
       </footer>

@@ -106,7 +106,7 @@ class AppApi {
         
         if (!apiKey) {
             console.error("Falta VITE_GEMINI_API_KEY en variables de entorno");
-            throw new Error("No se ha configurado la API Key de Gemini. Revisa la configuración de Vercel.");
+            throw new Error("No se ha configurado la API Key de Gemini. Verifica las variables de entorno en Vercel.");
         }
 
         const ai = new GoogleGenAI({ apiKey });
@@ -352,26 +352,35 @@ class AppApi {
   // 6. GESTIÓN INFO EMPRESA
   async getCompanyInfo(): Promise<CompanyInfo> {
       const { data, error } = await supabase.from('settings').select('*').single();
+      
+      // Si no existe tabla o fila, devolvemos valores por defecto sin error para que la UI no falle
       if (error || !data) {
-          // Default fallback
           return {
               address: 'Calle Ejemplo 123, 28000 Madrid',
               phone: '+34 900 123 456',
-              email: 'info@ecoquote.com'
+              email: 'info@ecoquote.com',
+              brandName: 'EcoQuote',
+              showLogo: false,
+              companyDescription: 'Expertos en soluciones de climatización eficiente. Presupuestos transparentes, instalación profesional y las mejores marcas del mercado.'
           };
       }
       return data;
   }
 
   async updateCompanyInfo(info: CompanyInfo): Promise<boolean> {
+      // Limpiamos el payload para no intentar actualizar el ID (que es PK y no debe cambiar)
+      const { id, ...payload } = info;
+
       // Check if row exists
       const { data } = await supabase.from('settings').select('id').single();
       
       if (data) {
-          const { error } = await supabase.from('settings').update(info).eq('id', data.id);
+          // Update existing row
+          const { error } = await supabase.from('settings').update(payload).eq('id', data.id);
           if (error) throw error;
       } else {
-          const { error } = await supabase.from('settings').insert(info);
+          // Insert new row if none exists
+          const { error } = await supabase.from('settings').insert(payload);
           if (error) throw error;
       }
       return true;
