@@ -98,4 +98,5 @@ export interface CompanyInfo {
   companyDescription?: string;
   showLogo?: boolean; // true = show img, false = show text
   partnerLogoUrl?: string; // Logo for footer (Endesa, RITE, etc)
+  isoLogoUrl?: string; // Logo for ISO Certification
 }

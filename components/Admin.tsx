@@ -219,11 +219,12 @@ const Admin: React.FC<AdminProps> = ({ onLogout }) => {
   // Settings State
   const [companyInfo, setCompanyInfo] = useState<CompanyInfo>({ 
       address: '', phone: '', email: '', 
-      brandName: '', companyDescription: '', showLogo: false, partnerLogoUrl: '' 
+      brandName: '', companyDescription: '', showLogo: false, partnerLogoUrl: '', isoLogoUrl: '' 
   });
   
   const [companyLogoFile, setCompanyLogoFile] = useState<File | null>(null);
   const [partnerLogoFile, setPartnerLogoFile] = useState<File | null>(null);
+  const [isoLogoFile, setIsoLogoFile] = useState<File | null>(null);
 
   // Edit State
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
@@ -306,10 +307,16 @@ const Admin: React.FC<AdminProps> = ({ onLogout }) => {
               updatedInfo.partnerLogoUrl = partnerUrl;
           }
 
+          if (isoLogoFile) {
+              const isoUrl = await api.uploadFile(isoLogoFile, 'images');
+              updatedInfo.isoLogoUrl = isoUrl;
+          }
+
           await api.updateCompanyInfo(updatedInfo);
           setMessage({ text: 'Configuración guardada.', type: 'success' });
           setCompanyLogoFile(null);
           setPartnerLogoFile(null);
+          setIsoLogoFile(null);
       } catch(e) {
           setMessage({ text: 'Error al guardar.', type: 'error' });
       } finally {
@@ -975,7 +982,7 @@ const Admin: React.FC<AdminProps> = ({ onLogout }) => {
 
                             {/* Partner Logo Upload */}
                             <div className="space-y-2 pt-2 border-t border-slate-100">
-                                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Logo Partner / Certificación (Footer)</label>
+                                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Logo Partner / Certificación</label>
                                 {companyInfo.partnerLogoUrl || partnerLogoFile ? (
                                     <div className="relative group bg-slate-800 rounded-xl border border-slate-700 h-24 flex items-center justify-center p-4">
                                         <img 
@@ -994,6 +1001,31 @@ const Admin: React.FC<AdminProps> = ({ onLogout }) => {
                                         <ImageIcon size={20} className="mb-1"/>
                                         <span className="text-[10px] font-medium">Subir Partner (Blanco/Transparente)</span>
                                         <input type="file" accept="image/*" className="hidden" onChange={e => e.target.files && setPartnerLogoFile(e.target.files[0])}/>
+                                    </label>
+                                )}
+                            </div>
+
+                            {/* ISO Logo Upload */}
+                            <div className="space-y-2 pt-2 border-t border-slate-100">
+                                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Certificado ISO 9001</label>
+                                {companyInfo.isoLogoUrl || isoLogoFile ? (
+                                    <div className="relative group bg-slate-800 rounded-xl border border-slate-700 h-24 flex items-center justify-center p-4">
+                                        <img 
+                                            src={isoLogoFile ? URL.createObjectURL(isoLogoFile) : companyInfo.isoLogoUrl} 
+                                            className="max-h-full max-w-full object-contain"
+                                        />
+                                        <button 
+                                            onClick={() => { setCompanyInfo({...companyInfo, isoLogoUrl: ''}); setIsoLogoFile(null); }} 
+                                            className="absolute top-2 right-2 bg-white p-1.5 rounded-lg text-red-500 shadow-sm border border-slate-100 hover:text-red-600 transition-colors"
+                                        >
+                                            <Trash2 size={14}/>
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <label className="border-2 border-dashed border-slate-300 rounded-xl h-24 flex flex-col items-center justify-center cursor-pointer hover:bg-slate-50 hover:border-slate-400 transition-all text-slate-400 bg-white">
+                                        <ImageIcon size={20} className="mb-1"/>
+                                        <span className="text-[10px] font-medium">Subir ISO (PNG/SVG)</span>
+                                        <input type="file" accept="image/*" className="hidden" onChange={e => e.target.files && setIsoLogoFile(e.target.files[0])}/>
                                     </label>
                                 )}
                             </div>

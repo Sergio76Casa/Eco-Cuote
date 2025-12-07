@@ -519,11 +519,15 @@ const App: React.FC = () => {
                         <a href="#" className="p-2 bg-slate-800 rounded-lg hover:bg-brand-600 hover:text-white transition-colors"><Twitter size={18}/></a>
                     </div>
                     
-                    {/* Partner Logo / Certification */}
-                    {companyInfo.partnerLogoUrl && (
-                        <div className="mt-6 pt-6 border-t border-slate-800">
-                            <p className="text-[10px] uppercase font-bold text-slate-500 mb-3 tracking-widest">Partner / Certificado</p>
-                            <img src={companyInfo.partnerLogoUrl} alt="Partner" className="h-8 w-auto opacity-70 hover:opacity-100 transition-opacity grayscale hover:grayscale-0" />
+                    {/* Certifications & Partners (Combined Zone) */}
+                    {(companyInfo.partnerLogoUrl || companyInfo.isoLogoUrl) && (
+                        <div className="mt-6 pt-6 border-t border-slate-800 flex items-center gap-4">
+                            {companyInfo.partnerLogoUrl && (
+                                <img src={companyInfo.partnerLogoUrl} alt="Partner" className="h-8 w-auto opacity-70 hover:opacity-100 transition-opacity grayscale hover:grayscale-0" />
+                            )}
+                            {companyInfo.isoLogoUrl && (
+                                <img src={companyInfo.isoLogoUrl} alt="ISO Certified" className="h-10 w-auto opacity-80 hover:opacity-100 transition-opacity" />
+                            )}
                         </div>
                     )}
                 </div>

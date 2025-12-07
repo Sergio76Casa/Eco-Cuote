@@ -1,3 +1,4 @@
+
 import { Product, SavedQuote, QuotePayload, ContactData, CompanyInfo } from '../types';
 import { createClient } from '@supabase/supabase-js';
 import { jsPDF } from 'jspdf';
@@ -398,7 +399,8 @@ class AppApi {
               brandName: 'EcoQuote',
               showLogo: false,
               companyDescription: 'Expertos en soluciones de climatización eficiente. Presupuestos transparentes, instalación profesional y las mejores marcas del mercado.',
-              partnerLogoUrl: ''
+              partnerLogoUrl: '',
+              isoLogoUrl: ''
           };
       }
       return data;
