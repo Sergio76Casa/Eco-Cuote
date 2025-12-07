@@ -563,10 +563,24 @@ const App: React.FC = () => {
                 <div>
                     <h4 className="text-white font-bold text-lg mb-6">{t('footer.contact')}</h4>
                     <ul className="space-y-4">
-                        <li className="flex gap-3 items-start group">
-                            <MapPin className="text-brand-500 shrink-0 mt-1 group-hover:text-brand-400 transition-colors" size={18}/>
-                            <span>{companyInfo.address}</span>
-                        </li>
+                        {/* Multiple Addresses Support */}
+                        {companyInfo.addresses && companyInfo.addresses.length > 0 ? (
+                            companyInfo.addresses.map((addr, idx) => (
+                                <li key={idx} className="flex gap-3 items-start group">
+                                    <MapPin className="text-brand-500 shrink-0 mt-1 group-hover:text-brand-400 transition-colors" size={18}/>
+                                    <div>
+                                        <span className="block font-bold text-white text-xs uppercase mb-0.5 tracking-wider">{addr.label}</span>
+                                        <span className="text-slate-400 text-sm leading-snug">{addr.value}</span>
+                                    </div>
+                                </li>
+                            ))
+                        ) : (
+                            <li className="flex gap-3 items-start group">
+                                <MapPin className="text-brand-500 shrink-0 mt-1 group-hover:text-brand-400 transition-colors" size={18}/>
+                                <span>{companyInfo.address}</span>
+                            </li>
+                        )}
+
                         <li className="flex gap-3 items-center group">
                             <Phone className="text-brand-500 shrink-0 group-hover:text-brand-400 transition-colors" size={18}/>
                             <span>{companyInfo.phone}</span>

@@ -401,7 +401,8 @@ class AppApi {
               companyDescription: 'Expertos en soluciones de climatización eficiente. Presupuestos transparentes, instalación profesional y las mejores marcas del mercado.',
               partnerLogoUrl: '',
               isoLogoUrl: '',
-              isoLinkUrl: ''
+              isoLinkUrl: '',
+              addresses: []
           };
       }
       return data;

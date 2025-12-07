@@ -1,10 +1,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
-import { SavedQuote, Product, LocalizedText, CompanyInfo } from '../types';
+import { SavedQuote, Product, LocalizedText, CompanyInfo, CompanyAddress } from '../types';
 import { 
   LogOut, Package, FileText, AlertCircle, CheckCircle, 
-  Plus, Trash2, X, FileUp, Search, Sparkles, Loader2, Save, Edit, ChevronDown, ChevronUp, Image as ImageIcon, Award, Globe, Settings, ArrowLeft
+  Plus, Trash2, X, FileUp, Search, Sparkles, Loader2, Save, Edit, ChevronDown, ChevronUp, Image as ImageIcon, Award, Globe, Settings, ArrowLeft, MapPin
 } from 'lucide-react';
 import { getLangText } from '../i18nUtils';
 
@@ -218,7 +218,7 @@ const Admin: React.FC<AdminProps> = ({ onLogout }) => {
   
   // Settings State
   const [companyInfo, setCompanyInfo] = useState<CompanyInfo>({ 
-      address: '', phone: '', email: '', 
+      address: '', addresses: [], phone: '', email: '', 
       brandName: '', companyDescription: '', showLogo: false, partnerLogoUrl: '', isoLogoUrl: '', isoLinkUrl: '' 
   });
   
@@ -322,6 +322,24 @@ const Admin: React.FC<AdminProps> = ({ onLogout }) => {
       } finally {
           setLoading(false);
       }
+  };
+
+  // --- ADDRESS HANDLERS ---
+  const addAddress = () => {
+      const newAddresses = [...(companyInfo.addresses || [])];
+      newAddresses.push({ label: 'Nueva Sede', value: '' });
+      setCompanyInfo({ ...companyInfo, addresses: newAddresses });
+  };
+
+  const updateAddress = (index: number, field: keyof CompanyAddress, value: string) => {
+      const newAddresses = [...(companyInfo.addresses || [])];
+      newAddresses[index] = { ...newAddresses[index], [field]: value };
+      setCompanyInfo({ ...companyInfo, addresses: newAddresses });
+  };
+
+  const removeAddress = (index: number) => {
+      const newAddresses = [...(companyInfo.addresses || [])].filter((_, i) => i !== index);
+      setCompanyInfo({ ...companyInfo, addresses: newAddresses });
   };
 
   const handleAnalyzePdf = async () => {
@@ -1042,17 +1060,54 @@ const Admin: React.FC<AdminProps> = ({ onLogout }) => {
                 {/* CONTACT SECTION */}
                 <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm">
                     <h3 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2"><Settings size={20}/> Datos de Contacto</h3>
-                    <div className="space-y-4">
+                    <div className="space-y-6">
+                        
+                        {/* Multiple Addresses Management */}
                         <div>
-                            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Dirección Física</label>
-                            <input 
-                                className="w-full border border-slate-300 rounded-lg p-3 outline-none focus:ring-2 focus:ring-brand-500 text-slate-900"
-                                value={companyInfo.address}
-                                onChange={e => setCompanyInfo({...companyInfo, address: e.target.value})}
-                                placeholder="Ej: Calle Principal 123, Madrid"
-                            />
+                            <div className="flex justify-between items-center mb-3">
+                                <label className="block text-xs font-bold text-slate-500 uppercase">Direcciones / Sedes</label>
+                                <button 
+                                    onClick={addAddress} 
+                                    className="text-xs bg-slate-100 text-brand-600 font-bold px-3 py-1.5 rounded-lg hover:bg-brand-50 transition-colors"
+                                >
+                                    + Añadir Dirección
+                                </button>
+                            </div>
+                            <div className="space-y-3">
+                                {companyInfo.addresses && companyInfo.addresses.length > 0 ? (
+                                    companyInfo.addresses.map((addr, idx) => (
+                                        <div key={idx} className="flex gap-2 items-start">
+                                            <div className="flex-1 grid grid-cols-3 gap-2">
+                                                <input 
+                                                    className="col-span-1 border border-slate-300 rounded-lg p-2.5 text-sm outline-none focus:ring-2 focus:ring-brand-500"
+                                                    placeholder="Etiqueta (Ej: Central)"
+                                                    value={addr.label}
+                                                    onChange={e => updateAddress(idx, 'label', e.target.value)}
+                                                />
+                                                <input 
+                                                    className="col-span-2 border border-slate-300 rounded-lg p-2.5 text-sm outline-none focus:ring-2 focus:ring-brand-500"
+                                                    placeholder="Dirección completa..."
+                                                    value={addr.value}
+                                                    onChange={e => updateAddress(idx, 'value', e.target.value)}
+                                                />
+                                            </div>
+                                            <button 
+                                                onClick={() => removeAddress(idx)}
+                                                className="p-2.5 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors border border-transparent"
+                                            >
+                                                <Trash2 size={18}/>
+                                            </button>
+                                        </div>
+                                    ))
+                                ) : (
+                                    <div className="p-4 bg-slate-50 border border-dashed border-slate-300 rounded-xl text-center text-sm text-slate-400 italic">
+                                        No hay direcciones añadidas. Usa el botón superior.
+                                    </div>
+                                )}
+                            </div>
                         </div>
-                        <div className="grid grid-cols-2 gap-4">
+
+                        <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-100">
                             <div>
                                 <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Teléfono</label>
                                 <input 

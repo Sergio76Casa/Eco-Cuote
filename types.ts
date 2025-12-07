@@ -87,9 +87,15 @@ export interface QuotePayload {
   sendEmail: boolean;
 }
 
+export interface CompanyAddress {
+  label: string; // e.g. "Central", "Delegación BCN"
+  value: string; // e.g. "C/ Ejemplo 123"
+}
+
 export interface CompanyInfo {
   id?: string;
-  address: string;
+  address: string; // Legacy single address
+  addresses?: CompanyAddress[]; // New multiple addresses
   phone: string;
   email: string;
   // New Branding Fields
