@@ -237,8 +237,8 @@ class AppApi {
   // 3. GUARDAR PRESUPUESTO Y GENERAR PDF + EMAIL
   async saveQuote(payload: QuotePayload): Promise<{ success: boolean; pdfUrl: string; emailSent: boolean }> {
     try {
-      // 1. Generar y Subir PDF
-      const pdfBlob = this.generateClientSidePDF(payload);
+      // 1. Generar y Subir PDF (Ahora es ASYNC para cargar el logo)
+      const pdfBlob = await this.generateClientSidePDF(payload);
       
       const fileName = `quotes/${Date.now()}_${payload.client.nombre.replace(/\s+/g, '_')}.pdf`;
       const { data: uploadData, error: uploadError } = await supabase.storage
@@ -431,96 +431,181 @@ class AppApi {
       return true;
   }
 
-  // --- UTILS: GENERADOR PDF CLIENTE ---
-  private generateClientSidePDF(data: QuotePayload): Blob {
+  // --- UTILS: GENERADOR PDF CLIENTE (MEJORADO) ---
+  private async generateClientSidePDF(data: QuotePayload): Promise<Blob> {
     const doc = new jsPDF();
-    
-    // Header
-    doc.setFillColor(37, 99, 235);
-    doc.rect(0, 0, 210, 40, 'F');
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(24);
-    doc.setFont('helvetica', 'bold');
-    doc.text("EcoQuote", 20, 25);
-    doc.setFontSize(10);
-    doc.text("Presupuesto de Climatización", 20, 32);
+    const companyInfo = await this.getCompanyInfo();
 
-    // Info Cliente
-    doc.setTextColor(0, 0, 0);
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'bold');
-    doc.text("Datos del Cliente:", 20, 60);
-    doc.setFont('helvetica', 'normal');
-    doc.text(`${data.client.nombre} ${data.client.apellidos}`, 20, 70);
-    doc.text(`${data.client.direccion}, ${data.client.poblacion}`, 20, 76);
-    doc.text(`Tel: ${data.client.telefono} | Email: ${data.client.email}`, 20, 82);
+    // Helper to load image
+    const loadImage = (url: string): Promise<HTMLImageElement> => {
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            img.crossOrigin = 'Anonymous';
+            img.src = url;
+            img.onload = () => resolve(img);
+            img.onerror = (e) => reject(e);
+        });
+    };
 
-    // Detalles Equipo
-    doc.setFont('helvetica', 'bold');
-    doc.text("Detalles del Equipo:", 20, 100);
-    doc.setFont('helvetica', 'normal');
-    doc.text(`Marca: ${data.brand}`, 20, 110);
-    doc.text(`Modelo: ${data.model}`, 20, 116);
+    // --- CABECERA ---
+    // Fondo barra superior
+    doc.setFillColor(30, 58, 138); // Brand 900 (Dark Blue)
+    doc.rect(0, 0, 210, 35, 'F');
 
-    let currentY = 130;
-
-    // Extras
-    if (data.extras && data.extras.length > 0) {
-      doc.setFont('helvetica', 'bold');
-      doc.text("Extras incluidos:", 20, currentY);
-      doc.setFont('helvetica', 'normal');
-      data.extras.forEach((ex, i) => {
-        doc.text(`- ${ex}`, 25, currentY + 6 + (i * 6));
-      });
-      currentY += 6 + (data.extras.length * 6) + 10;
+    // Logo (Si existe)
+    if (companyInfo.showLogo && companyInfo.logoUrl) {
+        try {
+            const img = await loadImage(companyInfo.logoUrl);
+            // Calculamos aspect ratio para que entre en 30mm de alto max
+            const ratio = img.width / img.height;
+            const h = 20;
+            const w = h * ratio;
+            doc.addImage(img, 'PNG', 15, 7.5, w, h);
+        } catch (e) {
+            console.warn("No se pudo cargar el logo para el PDF", e);
+            // Fallback texto
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(22);
+            doc.setFont('helvetica', 'bold');
+            doc.text(companyInfo.brandName || "EcoQuote", 15, 22);
+        }
     } else {
-        currentY += 10;
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(22);
+        doc.setFont('helvetica', 'bold');
+        doc.text(companyInfo.brandName || "EcoQuote", 15, 22);
     }
 
-    const minTotalY = 180;
-    const totalY = Math.max(currentY, minTotalY);
+    // Datos Empresa (Derecha Cabecera)
+    doc.setFontSize(9);
+    doc.setTextColor(200, 220, 255);
+    doc.setFont('helvetica', 'normal');
+    doc.text(companyInfo.phone, 195, 12, { align: 'right' });
+    doc.text(companyInfo.email, 195, 17, { align: 'right' });
+    if(companyInfo.addresses && companyInfo.addresses.length > 0) {
+        doc.text(companyInfo.addresses[0].value, 195, 22, { align: 'right' });
+    } else {
+        doc.text(companyInfo.address, 195, 22, { align: 'right' });
+    }
 
-    // Precio Total Line
-    doc.setDrawColor(200, 200, 200);
-    doc.line(20, totalY, 190, totalY);
-    
-    doc.setFontSize(16);
+    let y = 50;
+
+    // --- TITULO ---
+    doc.setTextColor(30, 58, 138);
+    doc.setFontSize(18);
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(37, 99, 235);
-    doc.text(`TOTAL: ${data.price} €`, 190, totalY + 10, { align: 'right' });
-    
+    doc.text("PRESUPUESTO", 15, y);
     doc.setFontSize(10);
     doc.setTextColor(100, 100, 100);
     doc.setFont('helvetica', 'normal');
-    doc.text("(IVA e Instalación Incluidos)", 190, totalY + 16, { align: 'right' });
+    doc.text(`Fecha: ${new Date().toLocaleDateString()}`, 195, y, { align: 'right' });
+    
+    y += 10;
 
-    // Financiación Section
-    doc.setTextColor(0,0,0);
-    doc.setFontSize(11);
+    // --- INFO CLIENTE (CAJA) ---
+    doc.setDrawColor(226, 232, 240); // Slate 200
+    doc.setFillColor(248, 250, 252); // Slate 50
+    doc.roundedRect(15, y, 180, 35, 3, 3, 'FD');
+    
+    doc.setFontSize(10);
+    doc.setTextColor(71, 85, 105); // Slate 600
     doc.setFont('helvetica', 'bold');
-    doc.text("Condiciones de Pago:", 20, totalY + 30);
+    doc.text("Datos del Cliente:", 20, y + 8);
+    
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(30, 41, 59); // Slate 800
+    doc.text(data.client.nombre + " " + data.client.apellidos, 20, y + 16);
+    doc.text(`Tel: ${data.client.telefono}`, 20, y + 22);
+    doc.text(data.client.email, 20, y + 28);
+    
+    doc.text(data.client.direccion, 110, y + 16);
+    doc.text(`${data.client.cp} ${data.client.poblacion}`, 110, y + 22);
+
+    y += 45;
+
+    // --- TABLA PRODUCTOS ---
+    // Header Row
+    doc.setFillColor(37, 99, 235); // Brand 600
+    doc.rect(15, y, 180, 8, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9);
+    doc.text("CONCEPTO", 20, y + 5.5);
+    doc.text("DETALLES", 100, y + 5.5);
+    
+    y += 8;
+
+    // Row 1: Equipo
+    doc.setTextColor(30, 41, 59);
+    doc.setFont('helvetica', 'bold');
+    doc.text("Equipo", 20, y + 6);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`${data.brand} - ${data.model}`, 100, y + 6);
+    doc.setDrawColor(226, 232, 240);
+    doc.line(15, y + 10, 195, y + 10);
+    y += 10;
+
+    // Row 2: Instalación (si hay extras, calculamos altura)
+    doc.setFont('helvetica', 'bold');
+    doc.text("Instalación y Extras", 20, y + 6);
+    doc.setFont('helvetica', 'normal');
+    
+    if (data.extras && data.extras.length > 0) {
+        data.extras.forEach((ex) => {
+            doc.text(`• ${ex}`, 100, y + 6);
+            y += 6;
+        });
+        y += 4; // Padding bottom
+    } else {
+        doc.text("Instalación Básica Incluida", 100, y + 6);
+        y += 10;
+    }
+    
+    doc.line(15, y, 195, y);
+    y += 5;
+
+    // --- TOTAL ---
+    y += 5;
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(30, 58, 138);
+    doc.text("TOTAL PRESUPUESTO", 140, y, { align: 'right' });
+    
+    doc.setFontSize(22);
+    doc.text(`${data.price} €`, 195, y + 2, { align: 'right' });
+    
+    y += 6;
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(100, 100, 100);
+    doc.text("(IVA e Instalación Incluidos)", 195, y, { align: 'right' });
+
+    y += 20;
+
+    // --- FINANCIACIÓN ---
+    doc.setDrawColor(203, 213, 225); 
+    doc.setFillColor(241, 245, 249);
+    doc.roundedRect(15, y, 180, 25, 2, 2, 'FD');
+    
+    doc.setFontSize(10);
+    doc.setTextColor(30, 58, 138);
+    doc.setFont('helvetica', 'bold');
+    doc.text("Forma de Pago:", 20, y + 8);
     
     const financingText = data.financing || "Pago al Contado";
-    const isFinanced = financingText.includes('\n') || financingText.toLowerCase().includes('meses');
-
+    const lines = financingText.split('\n');
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(10);
+    doc.setTextColor(51, 65, 85);
+    lines.forEach((line, i) => {
+        doc.text(line, 20, y + 16 + (i * 5));
+    });
 
-    if (isFinanced) {
-        doc.setFillColor(241, 245, 249); 
-        doc.setDrawColor(203, 213, 225); 
-        doc.rect(20, totalY + 34, 100, 25, 'FD'); 
-        
-        doc.setTextColor(30, 58, 138); 
-        const lines = financingText.split('\n');
-        lines.forEach((line, i) => {
-            if (i === 0) doc.setFont('helvetica', 'bold'); 
-            else doc.setFont('helvetica', 'normal');
-            doc.text(line, 25, totalY + 40 + (i * 6));
-        });
-    } else {
-        doc.text(financingText, 20, totalY + 36);
-    }
+    // --- FOOTER LEGAL ---
+    const pageHeight = doc.internal.pageSize.height;
+    doc.setFontSize(7);
+    doc.setTextColor(150, 150, 150);
+    const footerText = "Presupuesto válido por 15 días. " + (companyInfo.brandName || "EcoQuote") + " - " + companyInfo.email;
+    doc.text(footerText, 105, pageHeight - 10, { align: 'center' });
 
     return doc.output('blob');
   }
