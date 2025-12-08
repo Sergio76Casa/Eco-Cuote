@@ -139,16 +139,21 @@ const App: React.FC = () => {
         isValid = false;
     }
 
+    // Robust email regex
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
     if (!contactForm.email.trim()) {
         errors.email = t('validation.email_required');
         isValid = false;
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactForm.email)) {
+    } else if (!emailRegex.test(contactForm.email)) {
         errors.email = t('validation.email_invalid');
         isValid = false;
     }
 
     if (!contactForm.mensaje.trim()) {
         errors.mensaje = t('validation.message_required');
+        isValid = false;
+    } else if (contactForm.mensaje.trim().length < 10) {
+        errors.mensaje = "El mensaje es demasiado corto.";
         isValid = false;
     }
 
@@ -675,6 +680,25 @@ const App: React.FC = () => {
                     </div>
                 ) : (
                     <div className="space-y-4">
+                        {/* Company Info Box in Modal */}
+                        <div className="bg-slate-50 p-5 rounded-2xl mb-6 border border-slate-100">
+                            <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Información de Contacto</h4>
+                            <div className="space-y-3">
+                                <div className="flex gap-3 items-start">
+                                    <MapPin size={18} className="text-brand-500 shrink-0"/>
+                                    <span className="text-sm text-slate-600">{companyInfo.addresses && companyInfo.addresses.length > 0 ? companyInfo.addresses[0].value : companyInfo.address}</span>
+                                </div>
+                                <div className="flex gap-3 items-center">
+                                    <Phone size={18} className="text-brand-500 shrink-0"/>
+                                    <span className="text-sm text-slate-600">{companyInfo.phone}</span>
+                                </div>
+                                <div className="flex gap-3 items-center">
+                                    <Mail size={18} className="text-brand-500 shrink-0"/>
+                                    <span className="text-sm text-slate-600">{companyInfo.email}</span>
+                                </div>
+                            </div>
+                        </div>
+
                         <div>
                             <label className="block text-sm font-bold text-slate-700 mb-1">{t('validation.field_name')}</label>
                             <input 

@@ -57,7 +57,7 @@ export interface ClientData {
   direccion: string;
   poblacion: string;
   cp: string;
-  wo?: string;
+  wo?: string; // Work Order (8 digits)
 }
 
 export interface ContactData {
@@ -74,12 +74,13 @@ export interface SavedQuote {
   brand: string;
   model: string;
   price: number;
-  financing: string; // Added to display financing details in Admin
+  financing: string; 
   emailSent: boolean;
   pdfUrl: string;
   dniUrl?: string;
   incomeUrl?: string;
-  is_deleted?: boolean; // Soft delete flag
+  wo?: string; // Work Order
+  is_deleted?: boolean; 
 }
 
 export interface QuotePayload {
@@ -90,32 +91,32 @@ export interface QuotePayload {
   financing: string;
   client: ClientData;
   sendEmail: boolean;
-  signature?: string; // Base64 signature image
-  dniUrl?: string; // URL to uploaded DNI
-  incomeUrl?: string; // URL to uploaded Income proof
+  signature?: string; 
+  dniUrl?: string; 
+  incomeUrl?: string; 
 }
 
 export interface CompanyAddress {
-  label: string; // e.g. "Central", "Delegación BCN"
-  value: string; // e.g. "C/ Ejemplo 123"
+  label: string; 
+  value: string; 
 }
 
 export interface CompanyInfo {
   id?: string;
-  address: string; // Legacy single address
-  addresses?: CompanyAddress[]; // New multiple addresses
+  address: string; 
+  addresses?: CompanyAddress[]; 
   phone: string;
   email: string;
   // New Branding Fields
   logoUrl?: string;
-  brandName?: string; // e.g. "EcoQuote"
-  companyDescription?: string | LocalizedText; // Support translation
-  showLogo?: boolean; // true = show img, false = show text
-  partnerLogoUrl?: string; // Logo for footer (Endesa, RITE, etc)
-  isoLogoUrl?: string; // Logo for ISO Certification
-  isoLinkUrl?: string; // Link for ISO Certification
-  logo2Url?: string; // New Logo 2
-  logo2LinkUrl?: string; // Link for Logo 2
+  brandName?: string; 
+  companyDescription?: string | LocalizedText; 
+  showLogo?: boolean; 
+  partnerLogoUrl?: string; 
+  isoLogoUrl?: string; 
+  isoLinkUrl?: string; 
+  logo2Url?: string; 
+  logo2LinkUrl?: string; 
   // Social Media
   facebookUrl?: string;
   instagramUrl?: string;

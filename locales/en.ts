@@ -96,10 +96,10 @@ export default {
       "sign_title": "Conformity Signature",
       "concept": "Concept",
       "amount": "Amount",
-      "name": "Name *",
+      "name": "Name",
       "surname": "Surname",
-      "email": "Email *",
-      "phone": "Phone *",
+      "email": "Email",
+      "phone": "Phone",
       "city": "City",
       "zip": "Zip Code",
       "address": "Full Address",
@@ -107,13 +107,18 @@ export default {
       "submit": "Sign & Confirm Order",
       "legal_accept": "I accept the quote and service conditions.",
       "financing_docs_title": "Financing Documentation",
-      "dni": "ID Card / DNI (Front & Back) *",
-      "income": "Proof of Income (Payslip/Pension) *"
+      "dni": "ID Card / DNI (Front & Back)",
+      "income": "Proof of Income (Payslip/Pension)",
+      "is_technician": "I am a Technician / Installer",
+      "wo_label": "Work Order # (8 digits)"
     },
     "error": {
       "required_fields": "Please complete required fields (*)",
       "save_error": "Error saving",
-      "docs_required": "Financing requires ID and Proof of Income."
+      "docs_required": "Financing requires ID and Proof of Income.",
+      "email_invalid": "Invalid email format.",
+      "phone_invalid": "Phone must be at least 9 digits.",
+      "wo_invalid": "Work Order must be exactly 8 digits."
     }
   },
   "info": {

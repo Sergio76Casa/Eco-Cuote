@@ -1,3 +1,4 @@
+
 export default {
   "nav": {
     "home": "Inici",
@@ -95,20 +96,29 @@ export default {
       "sign_title": "Firma de Conformitat",
       "concept": "Concepte",
       "amount": "Import",
-      "name": "Nom *",
+      "name": "Nom",
       "surname": "Cognoms",
-      "email": "Email *",
-      "phone": "Telèfon *",
+      "email": "Email",
+      "phone": "Telèfon",
       "city": "Població",
       "zip": "CP",
       "address": "Adreça Completa",
       "cancel": "Tornar",
       "submit": "Firmar i Confirmar Comanda",
-      "legal_accept": "Accepto el pressupost i les condicions de servei."
+      "legal_accept": "Accepto el pressupost i les condicions de servei.",
+      "financing_docs_title": "Documentació per Finançament",
+      "dni": "Foto DNI / NIE (Ambdues cares)",
+      "income": "Justificant d'Ingressos (Nòmina/Pensió)",
+      "is_technician": "Sóc Tècnic / Instal·lador",
+      "wo_label": "Núm. Work Order (8 dígits)"
     },
     "error": {
       "required_fields": "Si us plau completa els camps obligatoris (*)",
-      "save_error": "Error al guardar"
+      "save_error": "Error al guardar",
+      "docs_required": "Per finançar és obligatori adjuntar DNI i Justificant d'ingressos.",
+      "email_invalid": "El format de l'email no és vàlid.",
+      "phone_invalid": "El telèfon ha de tenir almenys 9 dígits.",
+      "wo_invalid": "La Work Order ha de tenir exactament 8 dígits."
     }
   },
   "info": {

@@ -96,10 +96,10 @@ export default {
       "sign_title": "Firma de Conformidad",
       "concept": "Concepto",
       "amount": "Importe",
-      "name": "Nombre *",
+      "name": "Nombre",
       "surname": "Apellidos",
-      "email": "Email *",
-      "phone": "Teléfono *",
+      "email": "Email",
+      "phone": "Teléfono",
       "city": "Población",
       "zip": "CP",
       "address": "Dirección Completa",
@@ -107,13 +107,18 @@ export default {
       "submit": "Firmar y Confirmar Pedido",
       "legal_accept": "Acepto el presupuesto y las condiciones de servicio.",
       "financing_docs_title": "Documentación para Financiación",
-      "dni": "Foto DNI / NIE (Ambas caras) *",
-      "income": "Justificante de Ingresos (Nómina/Pensión) *"
+      "dni": "Foto DNI / NIE (Ambas caras)",
+      "income": "Justificante de Ingresos (Nómina/Pensión)",
+      "is_technician": "Soy Técnico / Instalador",
+      "wo_label": "Nº Work Order (8 dígitos)"
     },
     "error": {
       "required_fields": "Por favor completa los campos obligatorios (*)",
       "save_error": "Error al guardar",
-      "docs_required": "Para financiar es obligatorio adjuntar DNI y Justificante de ingresos."
+      "docs_required": "Para financiar es obligatorio adjuntar DNI y Justificante de ingresos.",
+      "email_invalid": "El formato del email no es válido.",
+      "phone_invalid": "El teléfono debe tener al menos 9 dígitos.",
+      "wo_invalid": "La Work Order debe tener exactamente 8 dígitos numéricos."
     }
   },
   "info": {
@@ -131,7 +136,7 @@ export default {
     },
     "garantias": {
       "title": "Garantía Total",
-      "text": "Ofrecemos 5 años de garantía en la instalación y gestionamos directamente la garantía del fabricante de su equipo. Su tranquilidad es nuestra prioridad; si surge algún problema, nosotros nos encargamos de todo sin costes ocultos."
+      "text": "Ofrecemos 5 años de garantía en la instalación y gestionem directament la garantía del fabricant del su equipo. Su tranquilidad es nuestra prioridad; si surge algún problema, nosaltres nos encargamos de todo sin costes ocultos."
     },
     "privacidad": {
       "title": "Política de Privacidad",

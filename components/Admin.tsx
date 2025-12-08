@@ -880,6 +880,7 @@ const Admin: React.FC<AdminProps> = ({ onLogout }) => {
                         <tr>
                             <th className="p-4">Fecha</th>
                             <th className="p-4">Cliente</th>
+                            <th className="p-4">WO</th>
                             <th className="p-4">Equipo</th>
                             <th className="p-4">Financiación</th>
                             <th className="p-4 text-center">Docs</th>
@@ -895,6 +896,11 @@ const Admin: React.FC<AdminProps> = ({ onLogout }) => {
                                 <td className="p-4">
                                     <div className="font-bold text-slate-800">{q.clientName}</div>
                                     <div className="text-xs text-slate-500">{q.clientEmail}</div>
+                                </td>
+                                <td className="p-4">
+                                    {q.wo ? (
+                                        <span className="font-mono bg-slate-100 text-slate-700 px-2 py-1 rounded text-xs font-bold border border-slate-200">{q.wo}</span>
+                                    ) : <span className="text-slate-300">-</span>}
                                 </td>
                                 <td className="p-4 text-slate-700 font-medium">{q.brand} {q.model}</td>
                                 <td className="p-4">

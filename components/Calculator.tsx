@@ -4,7 +4,7 @@ import { Product, ClientData } from '../types';
 import { api } from '../services/api';
 import { 
   CheckCircle2, CreditCard, ChevronLeft, Save, 
-  Minus, Plus, ShieldCheck, Download, Loader2, FileText, PenTool, Eraser, Check, Upload, AlertCircle
+  Minus, Plus, ShieldCheck, Download, Loader2, FileText, PenTool, Eraser, Check, Upload, AlertCircle, Wrench
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { getLangText } from '../i18nUtils';
@@ -34,12 +34,18 @@ const Calculator: React.FC<CalculatorProps> = ({ product, onBack }) => {
     nombre: '', apellidos: '', email: '', telefono: '', direccion: '', poblacion: '', cp: '', wo: ''
   });
 
+  // Technician Mode
+  const [isTechnician, setIsTechnician] = useState(false);
+
   // UI State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [lastQuoteUrl, setLastQuoteUrl] = useState<string | null>(null);
   const [legalAccepted, setLegalAccepted] = useState(false);
-  const [formError, setFormError] = useState<string | null>(null);
+  
+  // Validation State (Per Field)
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [globalError, setGlobalError] = useState<string | null>(null);
   
   // Signature State
   const sigPad = useRef<SignatureCanvas>(null);
@@ -81,26 +87,58 @@ const Calculator: React.FC<CalculatorProps> = ({ product, onBack }) => {
   };
 
   const handleSave = async () => {
-    setFormError(null);
+    setErrors({});
+    setGlobalError(null);
+    const newErrors: Record<string, string> = {};
 
-    // Validation
-    if (!client.nombre.trim() || !client.email.trim() || !client.telefono.trim() || !client.direccion.trim()) {
-      setFormError(t('calculator.error.required_fields'));
-      return;
+    // 1. Validate Required Fields
+    if (!client.nombre.trim()) newErrors.nombre = t('calculator.error.required_fields');
+    if (!client.apellidos.trim()) newErrors.apellidos = t('calculator.error.required_fields');
+    
+    // 2. Validate Email
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!client.email.trim()) {
+        newErrors.email = t('calculator.error.required_fields');
+    } else if (!emailRegex.test(client.email)) {
+        newErrors.email = t('calculator.error.email_invalid');
+    }
+
+    // 3. Validate Phone
+    if (!client.telefono.trim()) {
+        newErrors.telefono = t('calculator.error.required_fields');
+    } else if (client.telefono.trim().length < 9) {
+        newErrors.telefono = t('calculator.error.phone_invalid');
+    }
+
+    // 4. Validate Address
+    if (!client.direccion.trim()) newErrors.direccion = t('calculator.error.required_fields');
+    if (!client.poblacion.trim()) newErrors.poblacion = t('calculator.error.required_fields');
+    if (!client.cp.trim()) newErrors.cp = t('calculator.error.required_fields');
+
+    // 5. Validate WO (if Technician)
+    if (isTechnician) {
+        if (!client.wo) {
+            newErrors.wo = t('calculator.error.required_fields');
+        } else if (!/^\d{8}$/.test(client.wo)) {
+            newErrors.wo = t('calculator.error.wo_invalid');
+        }
     }
 
     // Validation for Financing Documents
     const isFinancingSelected = financeIdx >= 0 && financeData[financeIdx];
     if (isFinancingSelected) {
-        if (!dniFile || !incomeFile) {
-            setFormError(t('calculator.error.docs_required'));
-            return;
-        }
+        if (!dniFile) newErrors.dni = t('calculator.error.docs_required');
+        if (!incomeFile) newErrors.income = t('calculator.error.docs_required');
     }
 
     if (!legalAccepted) {
-      setFormError("Por favor acepta las condiciones legales.");
+      setGlobalError(t('calculator.form.legal_accept')); // Using global for legal check
       return;
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+        setErrors(newErrors);
+        return;
     }
 
     setStatus('loading');
@@ -163,7 +201,7 @@ const Calculator: React.FC<CalculatorProps> = ({ product, onBack }) => {
         price: total,
         extras: itemsList, // Send full list including installation
         financing: finText,
-        client,
+        client: { ...client, wo: isTechnician ? client.wo : undefined },
         sendEmail: true,
         signature: signatureImage,
         dniUrl: dniUrl,
@@ -179,7 +217,7 @@ const Calculator: React.FC<CalculatorProps> = ({ product, onBack }) => {
     } catch (e: any) {
       console.error(e);
       setStatus('error');
-      setFormError(`${t('calculator.error.save_error')}: ${e.message}`);
+      setGlobalError(`${t('calculator.error.save_error')}: ${e.message}`);
     }
   };
 
@@ -366,7 +404,7 @@ const Calculator: React.FC<CalculatorProps> = ({ product, onBack }) => {
             )}
 
             <button 
-                onClick={() => { setIsModalOpen(true); setFormError(null); }} 
+                onClick={() => { setIsModalOpen(true); setErrors({}); setGlobalError(null); }} 
                 disabled={status === 'loading'}
                 className="w-full py-4 bg-brand-600 hover:bg-brand-500 rounded-xl font-bold flex justify-center items-center gap-2 shadow-lg shadow-brand-900/50 transition-all active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed"
             >
@@ -446,10 +484,11 @@ const Calculator: React.FC<CalculatorProps> = ({ product, onBack }) => {
                                     </div>
                                     {Object.entries(extrasQty).map(([id, qty]) => {
                                         const e = extrasData.find(x => x.id === id);
+                                        const quantity = qty as number;
                                         return e ? (
                                             <div key={id} className="flex justify-between items-start text-slate-600">
-                                                <div>{qty > 1 ? `${getLangText(e.name, i18n.language)} (x${qty})` : getLangText(e.name, i18n.language)}</div>
-                                                <div className="font-mono font-bold text-slate-900">{formatCurrency(e.price * qty)}</div>
+                                                <div>{quantity > 1 ? `${getLangText(e.name, i18n.language)} (x${quantity})` : getLangText(e.name, i18n.language)}</div>
+                                                <div className="font-mono font-bold text-slate-900">{formatCurrency(e.price * quantity)}</div>
                                             </div>
                                         ) : null;
                                     })}
@@ -480,41 +519,115 @@ const Calculator: React.FC<CalculatorProps> = ({ product, onBack }) => {
                                 {t('calculator.form.client_title')}
                             </h3>
                             
-                            {/* ERROR MESSAGE BOX */}
-                            {formError && (
+                            {/* GLOBAL ERROR MESSAGE BOX */}
+                            {globalError && (
                                 <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-center gap-3 text-red-700 animate-in fade-in slide-in-from-top-2">
                                     <AlertCircle size={20} className="shrink-0"/>
-                                    <span className="text-sm font-bold">{formError}</span>
+                                    <span className="text-sm font-bold">{globalError}</span>
                                 </div>
                             )}
 
+                            {/* TECHNICIAN TOGGLE */}
+                            <label className="flex items-center gap-3 mb-6 p-3 bg-slate-50 border border-slate-200 rounded-xl cursor-pointer hover:bg-slate-100 transition-colors">
+                                <div className="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" checked={isTechnician} onChange={e => setIsTechnician(e.target.checked)} className="sr-only peer" />
+                                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-600"></div>
+                                </div>
+                                <span className="text-sm font-bold text-slate-700 flex items-center gap-2">
+                                    <Wrench size={16} className="text-slate-500"/>
+                                    {t('calculator.form.is_technician')}
+                                </span>
+                            </label>
+
                             <div className="grid grid-cols-2 gap-4 mb-4">
                                 <div>
-                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">{t('calculator.form.name')} <span className="text-red-500">*</span></label>
-                                    <input className="w-full bg-white border border-slate-300 p-2.5 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none text-slate-900" value={client.nombre} onChange={e=>setClient({...client,nombre:e.target.value})} />
+                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">{t('calculator.form.name')}</label>
+                                    <input 
+                                        className={`w-full bg-white border p-2.5 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none text-slate-900 ${errors.nombre ? 'border-red-500 focus:ring-red-200' : 'border-slate-300'}`} 
+                                        value={client.nombre} 
+                                        onChange={e => { setClient({...client,nombre:e.target.value}); if(errors.nombre) { const n={...errors}; delete n.nombre; setErrors(n); } }} 
+                                    />
+                                    {errors.nombre && <p className="text-red-500 text-xs mt-1 font-bold">{errors.nombre}</p>}
                                 </div>
                                 <div>
                                     <label className="block text-xs font-bold text-slate-500 uppercase mb-1">{t('calculator.form.surname')}</label>
-                                    <input className="w-full bg-white border border-slate-300 p-2.5 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none text-slate-900" value={client.apellidos} onChange={e=>setClient({...client,apellidos:e.target.value})} />
+                                    <input 
+                                        className={`w-full bg-white border p-2.5 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none text-slate-900 ${errors.apellidos ? 'border-red-500 focus:ring-red-200' : 'border-slate-300'}`} 
+                                        value={client.apellidos} 
+                                        onChange={e => { setClient({...client,apellidos:e.target.value}); if(errors.apellidos) { const n={...errors}; delete n.apellidos; setErrors(n); } }} 
+                                    />
+                                    {errors.apellidos && <p className="text-red-500 text-xs mt-1 font-bold">{errors.apellidos}</p>}
                                 </div>
                             </div>
                             <div className="grid grid-cols-2 gap-4 mb-4">
                                 <div>
-                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">{t('calculator.form.email')} <span className="text-red-500">*</span></label>
-                                    <input className="w-full bg-white border border-slate-300 p-2.5 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none text-slate-900" type="email" value={client.email} onChange={e=>setClient({...client,email:e.target.value})} />
+                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">{t('calculator.form.email')}</label>
+                                    <input 
+                                        className={`w-full bg-white border p-2.5 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none text-slate-900 ${errors.email ? 'border-red-500 focus:ring-red-200' : 'border-slate-300'}`} 
+                                        type="email" 
+                                        value={client.email} 
+                                        onChange={e => { setClient({...client,email:e.target.value}); if(errors.email) { const n={...errors}; delete n.email; setErrors(n); } }} 
+                                    />
+                                    {errors.email && <p className="text-red-500 text-xs mt-1 font-bold">{errors.email}</p>}
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">{t('calculator.form.phone')} <span className="text-red-500">*</span></label>
-                                    <input className="w-full bg-white border border-slate-300 p-2.5 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none text-slate-900" type="tel" value={client.telefono} onChange={e=>setClient({...client,telefono:e.target.value})} />
+                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">{t('calculator.form.phone')}</label>
+                                    <input 
+                                        className={`w-full bg-white border p-2.5 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none text-slate-900 ${errors.telefono ? 'border-red-500 focus:ring-red-200' : 'border-slate-300'}`} 
+                                        type="tel" 
+                                        value={client.telefono} 
+                                        onChange={e => { setClient({...client,telefono:e.target.value}); if(errors.telefono) { const n={...errors}; delete n.telefono; setErrors(n); } }} 
+                                    />
+                                    {errors.telefono && <p className="text-red-500 text-xs mt-1 font-bold">{errors.telefono}</p>}
                                 </div>
                             </div>
-                            <div className="mb-8">
-                                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">{t('calculator.form.address')} <span className="text-red-500">*</span></label>
-                                <div className="grid grid-cols-4 gap-2 mb-2">
-                                    <input className="col-span-1 bg-white border border-slate-300 p-2.5 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none text-slate-900" placeholder={t('calculator.form.zip')} value={client.cp} onChange={e=>setClient({...client,cp:e.target.value})} />
-                                    <input className="col-span-3 bg-white border border-slate-300 p-2.5 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none text-slate-900" placeholder={t('calculator.form.city')} value={client.poblacion} onChange={e=>setClient({...client,poblacion:e.target.value})} />
+                            
+                            {/* WORK ORDER FIELD (VISIBLE IF TECHNICIAN) */}
+                            {isTechnician && (
+                                <div className="mb-4">
+                                    <label className="block text-xs font-bold text-brand-700 uppercase mb-1">{t('calculator.form.wo_label')}</label>
+                                    <input 
+                                        className={`w-full bg-blue-50 border p-2.5 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none text-slate-900 font-mono tracking-widest placeholder:tracking-normal ${errors.wo ? 'border-red-500 focus:ring-red-200' : 'border-blue-200'}`} 
+                                        placeholder="00000000" 
+                                        maxLength={8}
+                                        value={client.wo || ''} 
+                                        onChange={e => {
+                                            const val = e.target.value.replace(/\D/g, '');
+                                            setClient({...client, wo: val});
+                                            if(errors.wo) { const n={...errors}; delete n.wo; setErrors(n); }
+                                        }} 
+                                    />
+                                    {errors.wo && <p className="text-red-500 text-xs mt-1 font-bold">{errors.wo}</p>}
                                 </div>
-                                <input className="w-full bg-white border border-slate-300 p-2.5 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none text-slate-900" placeholder={t('calculator.form.address')} value={client.direccion} onChange={e=>setClient({...client,direccion:e.target.value})} />
+                            )}
+
+                            <div className="mb-8">
+                                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">{t('calculator.form.address')}</label>
+                                <div className="grid grid-cols-4 gap-2 mb-2">
+                                    <div className="col-span-1">
+                                        <input 
+                                            className={`w-full bg-white border p-2.5 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none text-slate-900 ${errors.cp ? 'border-red-500' : 'border-slate-300'}`} 
+                                            placeholder={t('calculator.form.zip')} 
+                                            value={client.cp} 
+                                            onChange={e => { setClient({...client,cp:e.target.value}); if(errors.cp) { const n={...errors}; delete n.cp; setErrors(n); } }} 
+                                        />
+                                    </div>
+                                    <div className="col-span-3">
+                                        <input 
+                                            className={`w-full bg-white border p-2.5 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none text-slate-900 ${errors.poblacion ? 'border-red-500' : 'border-slate-300'}`} 
+                                            placeholder={t('calculator.form.city')} 
+                                            value={client.poblacion} 
+                                            onChange={e => { setClient({...client,poblacion:e.target.value}); if(errors.poblacion) { const n={...errors}; delete n.poblacion; setErrors(n); } }} 
+                                        />
+                                    </div>
+                                </div>
+                                <input 
+                                    className={`w-full bg-white border p-2.5 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none text-slate-900 ${errors.direccion ? 'border-red-500' : 'border-slate-300'}`} 
+                                    placeholder={t('calculator.form.address')} 
+                                    value={client.direccion} 
+                                    onChange={e => { setClient({...client,direccion:e.target.value}); if(errors.direccion) { const n={...errors}; delete n.direccion; setErrors(n); } }} 
+                                />
+                                {(errors.cp || errors.poblacion || errors.direccion) && <p className="text-red-500 text-xs mt-1 font-bold">{t('calculator.error.required_fields')}</p>}
                             </div>
 
                             {/* Financing Documents Section */}
@@ -524,28 +637,36 @@ const Calculator: React.FC<CalculatorProps> = ({ product, onBack }) => {
                                     
                                     <div className="grid grid-cols-2 gap-4">
                                         <div>
-                                            <label className="block text-xs font-bold text-blue-700 uppercase mb-1">{t('calculator.form.dni')} <span className="text-red-500">*</span></label>
-                                            <div className="relative bg-white rounded-lg border border-slate-200 p-1">
+                                            <label className="block text-xs font-bold text-blue-700 uppercase mb-1">{t('calculator.form.dni')}</label>
+                                            <div className={`relative bg-white rounded-lg border p-1 ${errors.dni ? 'border-red-500 ring-1 ring-red-200' : 'border-slate-200'}`}>
                                                 <input 
                                                     type="file" 
                                                     accept="image/*,.pdf"
-                                                    onChange={(e) => e.target.files && setDniFile(e.target.files[0])}
+                                                    onChange={(e) => { 
+                                                        if(e.target.files) setDniFile(e.target.files[0]);
+                                                        if(errors.dni) { const n={...errors}; delete n.dni; setErrors(n); }
+                                                    }}
                                                     className="w-full text-xs text-slate-500 file:mr-2 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200 cursor-pointer bg-transparent"
                                                 />
                                                 {dniFile && <CheckCircle2 className="absolute right-2 top-2 text-green-500" size={16}/>}
                                             </div>
+                                            {errors.dni && <p className="text-red-500 text-[10px] mt-1 font-bold">{errors.dni}</p>}
                                         </div>
                                         <div>
-                                            <label className="block text-xs font-bold text-blue-700 uppercase mb-1">{t('calculator.form.income')} <span className="text-red-500">*</span></label>
-                                            <div className="relative bg-white rounded-lg border border-slate-200 p-1">
+                                            <label className="block text-xs font-bold text-blue-700 uppercase mb-1">{t('calculator.form.income')}</label>
+                                            <div className={`relative bg-white rounded-lg border p-1 ${errors.income ? 'border-red-500 ring-1 ring-red-200' : 'border-slate-200'}`}>
                                                 <input 
                                                     type="file" 
                                                     accept="image/*,.pdf"
-                                                    onChange={(e) => e.target.files && setIncomeFile(e.target.files[0])}
+                                                    onChange={(e) => {
+                                                        if(e.target.files) setIncomeFile(e.target.files[0]);
+                                                        if(errors.income) { const n={...errors}; delete n.income; setErrors(n); }
+                                                    }}
                                                     className="w-full text-xs text-slate-500 file:mr-2 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200 cursor-pointer bg-transparent"
                                                 />
                                                 {incomeFile && <CheckCircle2 className="absolute right-2 top-2 text-green-500" size={16}/>}
                                             </div>
+                                            {errors.income && <p className="text-red-500 text-[10px] mt-1 font-bold">{errors.income}</p>}
                                         </div>
                                     </div>
                                 </div>
@@ -559,8 +680,8 @@ const Calculator: React.FC<CalculatorProps> = ({ product, onBack }) => {
                             <div className="border-2 border-dashed border-slate-300 rounded-xl bg-slate-50 relative mb-4">
                                 <SignatureCanvas 
                                     ref={sigPad}
-                                    penColor="black"
                                     canvasProps={{className: 'w-full h-40 cursor-crosshair'}}
+                                    // @ts-ignore
                                     onEnd={() => setHasSignature(true)}
                                 />
                                 {!hasSignature && (

@@ -1,3 +1,4 @@
+
 export default {
   "nav": {
     "home": "Accueil",
@@ -95,20 +96,29 @@ export default {
       "sign_title": "Signature de conformité",
       "concept": "Concept",
       "amount": "Montant",
-      "name": "Prénom *",
+      "name": "Prénom",
       "surname": "Nom",
-      "email": "Email *",
-      "phone": "Téléphone *",
+      "email": "Email",
+      "phone": "Téléphone",
       "city": "Ville",
       "zip": "Code postal",
       "address": "Adresse complète",
       "cancel": "Retour",
       "submit": "Signer et Confirmer",
-      "legal_accept": "J'accepte le devis et les conditions de service."
+      "legal_accept": "J'accepte le devis et les conditions de service.",
+      "financing_docs_title": "Documentation de financement",
+      "dni": "Carte d'identité / NIE (Recto-Verso)",
+      "income": "Justificatif de revenus (Fiche de paie/Pension)",
+      "is_technician": "Je suis Technicien / Installateur",
+      "wo_label": "Numéro de Work Order (8 chiffres)"
     },
     "error": {
       "required_fields": "Veuillez remplir les champs obligatoires (*)",
-      "save_error": "Erreur lors de l'enregistrement"
+      "save_error": "Erreur lors de l'enregistrement",
+      "docs_required": "Le financement nécessite une pièce d'identité et un justificatif de revenus.",
+      "email_invalid": "Format d'email invalide.",
+      "phone_invalid": "Le téléphone doit comporter au moins 9 chiffres.",
+      "wo_invalid": "Le Work Order doit comporter exactement 8 chiffres."
     }
   },
   "info": {

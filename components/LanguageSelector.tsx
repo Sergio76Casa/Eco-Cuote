@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Globe, ChevronDown } from 'lucide-react';
@@ -40,7 +41,7 @@ const LanguageSelector: React.FC = () => {
                     {i18n.language.startsWith('es') && <span className="w-1.5 h-1.5 rounded-full bg-brand-600"></span>}
                 </button>
                 <button onClick={() => changeLanguage('ca')} className="w-full text-left px-4 py-3 text-sm hover:bg-slate-50 text-slate-700 font-medium flex items-center justify-between">
-                    <span>🏴 Català</span>
+                    <span>🇦🇩 Català</span>
                     {i18n.language.startsWith('ca') && <span className="w-1.5 h-1.5 rounded-full bg-brand-600"></span>}
                 </button>
                 <button onClick={() => changeLanguage('en')} className="w-full text-left px-4 py-3 text-sm hover:bg-slate-50 text-slate-700 font-medium flex items-center justify-between">
