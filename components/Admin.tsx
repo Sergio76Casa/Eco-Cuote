@@ -4,7 +4,7 @@ import { api } from '../services/api';
 import { SavedQuote, Product, LocalizedText, CompanyInfo, CompanyAddress } from '../types';
 import { 
   LogOut, Package, FileText, AlertCircle, CheckCircle, 
-  Plus, Trash2, X, FileUp, Search, Sparkles, Loader2, Save, Edit, ChevronDown, ChevronUp, Image as ImageIcon, Award, Globe, Settings, ArrowLeft, MapPin, Share2, Facebook, Instagram, Twitter, Linkedin, CreditCard, Image, RotateCcw, Archive
+  Plus, Trash2, X, FileUp, Search, Sparkles, Loader2, Save, Edit, ChevronDown, ChevronUp, Image as ImageIcon, Award, Globe, Settings, ArrowLeft, MapPin, Share2, Facebook, Instagram, Twitter, Linkedin, CreditCard, Image, RotateCcw, Archive, Download, ExternalLink
 } from 'lucide-react';
 import { getLangText } from '../i18nUtils';
 
@@ -348,7 +348,6 @@ const Admin: React.FC<AdminProps> = ({ onLogout }) => {
       }
   };
 
-  // ... (Address Handlers remain same) ...
   const addAddress = () => {
       const newAddresses = [...(companyInfo.addresses || [])];
       newAddresses.push({ label: 'Nueva Sede', value: '' });
@@ -489,7 +488,6 @@ const Admin: React.FC<AdminProps> = ({ onLogout }) => {
       }
   };
 
-  // SOFT DELETE Logic
   const handleDeleteProduct = async (id: string) => {
       if(!confirm("¿Mover a la papelera?")) return;
       setLoading(true);
@@ -558,6 +556,20 @@ const Admin: React.FC<AdminProps> = ({ onLogout }) => {
       }
   };
 
+  const handleHardDeleteQuote = async (id: string) => {
+      if(!confirm("ADVERTENCIA: Esto borrará el presupuesto y sus datos asociados para siempre. ¿Continuar?")) return;
+      setLoading(true);
+      try {
+          await api.deleteQuote(id, true); // Hard delete
+          setMessage({ text: 'Presupuesto eliminado permanentemente.', type: 'success' });
+          fetchHistory(showTrash);
+      } catch(e: any) {
+          setMessage({ text: 'Error: ' + e.message, type: 'error' });
+      } finally {
+          setLoading(false);
+      }
+  };
+
   const toggleQuoteStatus = async (q: SavedQuote) => {
     setLoading(true);
     try {
@@ -575,47 +587,48 @@ const Admin: React.FC<AdminProps> = ({ onLogout }) => {
   );
 
   return (
-    <div className="min-h-screen bg-slate-50 p-4 md:p-8">
+    <div className="min-h-screen bg-slate-50 p-4 md:p-8 pb-24">
       <div className="max-w-7xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
+        {/* Responsive Header */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
           <div>
-            <h2 className="text-3xl font-black text-slate-900 tracking-tight">Panel de Administración</h2>
-            <p className="text-slate-500">Gestión completa del sistema</p>
+            <h2 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">Panel de Administración</h2>
+            <p className="text-slate-500 text-sm md:text-base">Gestión completa del sistema</p>
           </div>
-          <button onClick={onLogout} className="text-red-600 font-bold flex items-center gap-2 px-4 py-2 hover:bg-red-50 rounded-xl transition-colors">
+          <button onClick={onLogout} className="text-red-600 font-bold flex items-center gap-2 px-4 py-2 hover:bg-red-50 rounded-xl transition-colors text-sm md:text-base self-end md:self-auto border border-red-100 bg-white md:bg-transparent md:border-transparent shadow-sm md:shadow-none">
             <LogOut size={18}/> Salir
           </button>
         </div>
 
-        {/* Global Tabs - ONLY VISIBLE IN LIST MODE */}
+        {/* Global Tabs - Responsive with scroll on mobile */}
         {viewMode === 'list' && (
-            <div className="flex justify-between items-center mb-8">
-                <div className="flex gap-1 bg-white p-1 rounded-xl border border-slate-200 w-fit shadow-sm">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                <div className="flex gap-1 bg-white p-1 rounded-xl border border-slate-200 w-full md:w-fit shadow-sm overflow-x-auto no-scrollbar">
                     <button 
                         onClick={() => setActiveTab('products')} 
-                        className={`px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 transition-all ${activeTab === 'products' ? 'bg-brand-100 text-brand-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                        className={`px-3 md:px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 transition-all whitespace-nowrap ${activeTab === 'products' ? 'bg-brand-100 text-brand-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
                     >
                         <Package size={16}/> Catálogo
                     </button>
                     <button 
                         onClick={() => setActiveTab('quotes')} 
-                        className={`px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 transition-all ${activeTab === 'quotes' ? 'bg-brand-100 text-brand-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                        className={`px-3 md:px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 transition-all whitespace-nowrap ${activeTab === 'quotes' ? 'bg-brand-100 text-brand-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
                     >
                         <FileText size={16}/> Presupuestos
                     </button>
                     <button 
                         onClick={() => setActiveTab('settings')} 
-                        className={`px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 transition-all ${activeTab === 'settings' ? 'bg-brand-100 text-brand-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                        className={`px-3 md:px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 transition-all whitespace-nowrap ${activeTab === 'settings' ? 'bg-brand-100 text-brand-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
                     >
-                        <Settings size={16}/> Configuración
+                        <Settings size={16}/> Config
                     </button>
                 </div>
 
-                {/* Trash Toggle (Only for Products & Quotes) */}
+                {/* Trash Toggle */}
                 {activeTab !== 'settings' && (
                     <button 
                         onClick={() => setShowTrash(!showTrash)}
-                        className={`px-4 py-2 rounded-xl font-bold text-sm flex items-center gap-2 transition-all border ${showTrash ? 'bg-red-50 text-red-600 border-red-200' : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300'}`}
+                        className={`w-full md:w-auto px-4 py-2 rounded-xl font-bold text-sm flex justify-center md:justify-start items-center gap-2 transition-all border ${showTrash ? 'bg-red-50 text-red-600 border-red-200' : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300'}`}
                     >
                         {showTrash ? <RotateCcw size={16}/> : <Trash2 size={16}/>}
                         {showTrash ? 'Ver Activos' : 'Ver Papelera'}
@@ -627,7 +640,7 @@ const Admin: React.FC<AdminProps> = ({ onLogout }) => {
         {message && (
           <div className={`p-4 rounded-xl mb-6 flex items-center gap-3 shadow-sm border ${message.type === 'error' ? 'bg-red-50 text-red-800 border-red-100' : 'bg-emerald-50 text-emerald-800 border-emerald-100'}`}>
             {message.type === 'error' ? <AlertCircle size={20}/> : <CheckCircle size={20}/>}
-            <span className="font-medium">{message.text}</span>
+            <span className="font-medium text-sm md:text-base">{message.text}</span>
             <button onClick={() => setMessage(null)} className="ml-auto"><X size={16}/></button>
           </div>
         )}
@@ -635,25 +648,26 @@ const Admin: React.FC<AdminProps> = ({ onLogout }) => {
         {/* --- TAB: PRODUCTS --- */}
         {activeTab === 'products' && (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
-            {/* VIEW MODE: LIST (TABLE) */}
+            {/* VIEW MODE: LIST */}
             {viewMode === 'list' && (
                 <>
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                        <h3 className="font-bold text-xl text-slate-800 flex items-center gap-2">
+                        <h3 className="font-bold text-lg md:text-xl text-slate-800 flex items-center gap-2">
                             {showTrash ? <Trash2 className="text-red-500"/> : <Package className="text-brand-500"/>}
-                            {showTrash ? 'Papelera de Reciclaje (Productos)' : 'Inventario de Equipos'}
+                            {showTrash ? 'Papelera (Productos)' : 'Inventario'}
                         </h3>
                         {!showTrash && (
                             <button 
                                 onClick={openCreateForm}
-                                className="bg-brand-600 text-white px-4 py-2 rounded-xl font-bold flex items-center gap-2 hover:bg-brand-700 transition-colors shadow-lg shadow-brand-200"
+                                className="w-full sm:w-auto bg-brand-600 text-white px-4 py-2 rounded-xl font-bold flex justify-center items-center gap-2 hover:bg-brand-700 transition-colors shadow-lg shadow-brand-200"
                             >
                                 <Plus size={18}/> Nuevo Producto
                             </button>
                         )}
                     </div>
 
-                    <div className={`bg-white rounded-2xl border ${showTrash ? 'border-red-200' : 'border-slate-200'} shadow-sm overflow-hidden`}>
+                    {/* DESKTOP TABLE (Hidden on Mobile) */}
+                    <div className={`hidden md:block bg-white rounded-2xl border ${showTrash ? 'border-red-200' : 'border-slate-200'} shadow-sm overflow-hidden`}>
                         <table className="w-full text-sm text-left">
                             <thead className="bg-slate-50 text-slate-500 font-bold uppercase text-xs">
                                 <tr>
@@ -706,37 +720,13 @@ const Admin: React.FC<AdminProps> = ({ onLogout }) => {
                                             <div className="flex justify-end gap-2">
                                                 {showTrash ? (
                                                     <>
-                                                        <button 
-                                                            onClick={() => handleRestoreProduct(p.id)}
-                                                            className="text-emerald-500 hover:text-emerald-700 p-2 hover:bg-emerald-50 rounded-lg transition-colors font-bold flex items-center gap-1 text-xs"
-                                                            title="Restaurar"
-                                                        >
-                                                            <RotateCcw size={16}/> Restaurar
-                                                        </button>
-                                                        <button 
-                                                            onClick={() => handleHardDeleteProduct(p.id)}
-                                                            className="text-red-400 hover:text-red-700 p-2 hover:bg-red-50 rounded-lg transition-colors"
-                                                            title="Eliminar Definitivamente"
-                                                        >
-                                                            <X size={18}/>
-                                                        </button>
+                                                        <button onClick={() => handleRestoreProduct(p.id)} className="text-emerald-500 hover:text-emerald-700 p-2 hover:bg-emerald-50 rounded-lg transition-colors font-bold flex items-center gap-1 text-xs" title="Restaurar"><RotateCcw size={16}/> Restaurar</button>
+                                                        <button onClick={() => handleHardDeleteProduct(p.id)} className="text-red-400 hover:text-red-700 p-2 hover:bg-red-50 rounded-lg transition-colors" title="Eliminar Definitivamente"><X size={18}/></button>
                                                     </>
                                                 ) : (
                                                     <>
-                                                        <button 
-                                                            onClick={() => openEditForm(p)}
-                                                            className="text-slate-400 hover:text-brand-600 p-2 hover:bg-brand-50 rounded-lg transition-colors"
-                                                            title="Editar Completo"
-                                                        >
-                                                            <Edit size={18}/>
-                                                        </button>
-                                                        <button 
-                                                            onClick={() => handleDeleteProduct(p.id)}
-                                                            className="text-slate-300 hover:text-red-600 p-2 hover:bg-red-50 rounded-lg transition-colors"
-                                                            title="Mover a Papelera"
-                                                        >
-                                                            <Trash2 size={18}/>
-                                                        </button>
+                                                        <button onClick={() => openEditForm(p)} className="text-slate-400 hover:text-brand-600 p-2 hover:bg-brand-50 rounded-lg transition-colors" title="Editar Completo"><Edit size={18}/></button>
+                                                        <button onClick={() => handleDeleteProduct(p.id)} className="text-slate-300 hover:text-red-600 p-2 hover:bg-red-50 rounded-lg transition-colors" title="Mover a Papelera"><Trash2 size={18}/></button>
                                                     </>
                                                 )}
                                             </div>
@@ -746,6 +736,56 @@ const Admin: React.FC<AdminProps> = ({ onLogout }) => {
                             </tbody>
                         </table>
                     </div>
+
+                    {/* MOBILE PRODUCT LIST (CARDS) */}
+                    <div className="md:hidden space-y-4">
+                        {dbProducts.map(p => (
+                            <div key={p.id} className={`bg-white p-4 rounded-2xl border ${showTrash ? 'border-red-200' : 'border-slate-200'} shadow-sm`}>
+                                <div className="flex gap-4 items-start mb-3">
+                                    <div className="w-16 h-16 rounded-xl bg-slate-100 flex-shrink-0 border border-slate-100 overflow-hidden flex items-center justify-center">
+                                         {p.imageUrl ? <img src={p.imageUrl} className="w-full h-full object-contain"/> : <ImageIcon className="text-slate-300"/>}
+                                    </div>
+                                    <div className="flex-1">
+                                        <div className="text-xs font-bold text-slate-500 uppercase">{p.brand}</div>
+                                        <div className="font-bold text-lg text-slate-900 leading-tight mb-1">{p.model}</div>
+                                        <span className="bg-slate-100 text-slate-600 px-2 py-0.5 rounded text-[10px] font-bold border border-slate-200 uppercase">{p.type}</span>
+                                    </div>
+                                </div>
+                                
+                                <div className="bg-slate-50 p-3 rounded-xl mb-3">
+                                    <div className="text-xs font-bold text-slate-400 uppercase mb-2">Precios</div>
+                                    <div className="space-y-1">
+                                        {p.pricing?.map(pr => (
+                                            <div key={pr.id} className="flex justify-between text-sm">
+                                                <span className="text-slate-600 font-medium">{getLangText(pr.name, 'es')}</span>
+                                                <span className="font-bold text-brand-600">{pr.price}€</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div className="flex justify-between items-center border-t border-slate-100 pt-3">
+                                    <div className="flex gap-2">
+                                        {p.pdfUrl && <a href={p.pdfUrl} target="_blank" className="p-2 bg-brand-50 text-brand-600 rounded-lg"><FileText size={18}/></a>}
+                                        {p.brandLogoUrl && <span className="p-2 bg-slate-100 text-slate-400 rounded-lg"><Award size={18}/></span>}
+                                    </div>
+                                    <div className="flex gap-2">
+                                        {showTrash ? (
+                                             <>
+                                                <button onClick={() => handleRestoreProduct(p.id)} className="text-emerald-600 bg-emerald-50 px-3 py-2 rounded-lg text-xs font-bold flex items-center gap-1">Restaurar</button>
+                                                <button onClick={() => handleHardDeleteProduct(p.id)} className="p-2 text-red-400 hover:text-red-600 bg-red-50 rounded-lg"><X size={18}/></button>
+                                             </>
+                                        ) : (
+                                            <>
+                                                <button onClick={() => openEditForm(p)} className="p-2 text-slate-500 hover:text-brand-600 bg-slate-50 rounded-lg"><Edit size={18}/></button>
+                                                <button onClick={() => handleDeleteProduct(p.id)} className="p-2 text-red-400 hover:text-red-600 bg-red-50 rounded-lg"><Trash2 size={18}/></button>
+                                            </>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
                 </>
             )}
 
@@ -753,32 +793,34 @@ const Admin: React.FC<AdminProps> = ({ onLogout }) => {
             {viewMode === 'form' && (
                 <div className="animate-in slide-in-from-right-4 fade-in duration-300">
                     <div className="bg-white rounded-3xl shadow-lg border border-slate-200 overflow-hidden">
-                        <div className="p-6 border-b border-slate-200 bg-white sticky top-0 z-20 flex justify-between items-center shadow-sm">
-                            <div className="flex items-center gap-4">
+                        {/* Responsive Form Header */}
+                        <div className="p-4 md:p-6 border-b border-slate-200 bg-white sticky top-0 z-20 flex flex-col md:flex-row justify-between items-start md:items-center shadow-sm gap-4">
+                            <div className="flex items-center gap-3 md:gap-4 w-full md:w-auto">
                                 <button onClick={closeForm} className="p-2 hover:bg-slate-100 rounded-full text-slate-500 transition-colors" title="Volver"><ArrowLeft size={24}/></button>
                                 <div>
-                                    <h3 className="font-black text-2xl text-slate-800 flex items-center gap-2">
+                                    <h3 className="font-black text-xl md:text-2xl text-slate-800 flex items-center gap-2 flex-wrap">
                                         {editingProductId ? 'Editar Producto' : 'Nuevo Producto'}
-                                        {editingProductId && <span className="text-xs font-normal bg-slate-100 text-slate-500 px-2 py-1 rounded">ID: {editingProductId}</span>}
+                                        {editingProductId && <span className="text-xs font-normal bg-slate-100 text-slate-500 px-2 py-1 rounded">ID: {editingProductId.substring(0,6)}...</span>}
                                     </h3>
-                                    <p className="text-sm text-slate-500 font-medium">Gestión integral de ficha técnica y comercial.</p>
                                 </div>
                             </div>
-                            <div className="flex gap-3">
-                                <button onClick={closeForm} className="hidden sm:block px-6 py-2.5 text-slate-500 font-bold hover:bg-slate-50 hover:text-slate-700 rounded-xl transition-colors">Cancelar</button>
-                                <button onClick={handleSaveProduct} disabled={loading || aiLoading} className="px-6 py-2.5 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl shadow-lg shadow-brand-200 flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed transition-all active:scale-[0.98]">
+                            <div className="flex gap-3 w-full md:w-auto">
+                                <button onClick={closeForm} className="flex-1 md:flex-none px-4 md:px-6 py-2.5 text-slate-500 font-bold hover:bg-slate-50 hover:text-slate-700 rounded-xl transition-colors bg-slate-50 md:bg-transparent text-center">Cancelar</button>
+                                <button onClick={handleSaveProduct} disabled={loading || aiLoading} className="flex-1 md:flex-none px-4 md:px-6 py-2.5 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl shadow-lg shadow-brand-200 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed transition-all active:scale-[0.98]">
                                     {loading ? <Loader2 className="animate-spin" size={20}/> : <Save size={20}/>} Guardar
                                 </button>
                             </div>
                         </div>
-                        <div className="p-8 space-y-10 bg-slate-50/50">
-                            <div className="grid md:grid-cols-2 gap-10">
+
+                        <div className="p-4 md:p-8 space-y-8 md:space-y-10 bg-slate-50/50">
+                            {/* Same form content but ensure grids collapse on mobile */}
+                            <div className="grid md:grid-cols-2 gap-6 md:gap-10">
                                 <div className="space-y-6">
                                     <div className="bg-white p-6 rounded-2xl border border-brand-100 shadow-sm">
                                         <h4 className="font-bold text-slate-800 flex items-center gap-2 text-sm uppercase tracking-wider mb-4"><Sparkles size={16} className="text-brand-500"/> Importación Automática (IA)</h4>
                                         <div className={`transition-all ${loading ? 'opacity-60 pointer-events-none' : ''}`}>
                                             {!pdfFile ? (
-                                                <label className="w-full border-2 border-dashed border-brand-200 p-6 rounded-xl bg-brand-50/30 hover:bg-brand-50 cursor-pointer flex flex-col items-center justify-center transition-colors group h-32">
+                                                <label className="w-full border-2 border-dashed border-brand-200 p-6 rounded-xl bg-brand-50/30 hover:bg-brand-50 cursor-pointer flex flex-col items-center justify-center transition-colors group h-32 text-center">
                                                     <FileUp size={28} className="text-brand-400 mb-2 group-hover:scale-110 transition-transform"/>
                                                     <span className="text-sm text-brand-700 font-bold">Subir PDF Técnico</span>
                                                     <input type="file" accept=".pdf" className="hidden" onChange={e => e.target.files && setPdfFile(e.target.files[0])}/>
@@ -798,7 +840,7 @@ const Admin: React.FC<AdminProps> = ({ onLogout }) => {
                                     </div>
                                     <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-5">
                                         <h4 className="font-bold text-slate-800 text-sm uppercase tracking-wider mb-2">Datos Principales</h4>
-                                        <div className="grid grid-cols-2 gap-5">
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                                             <div><label className="text-xs font-bold text-slate-500 mb-1.5 block uppercase">Marca</label><input className="w-full bg-white border border-slate-300 text-slate-900 p-2.5 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none font-medium shadow-sm" placeholder="Ej: Daikin" value={prodForm.brand} onChange={e => setProdForm({...prodForm, brand: e.target.value})}/></div>
                                             <div>
                                                 <label className="text-xs font-bold text-slate-500 mb-1.5 block uppercase">Tipo</label>
@@ -816,7 +858,7 @@ const Admin: React.FC<AdminProps> = ({ onLogout }) => {
                                 <div className="space-y-6">
                                     <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
                                         <h4 className="font-bold text-slate-800 text-sm uppercase tracking-wider mb-4">Recursos Gráficos</h4>
-                                        <div className="grid grid-cols-2 gap-6">
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                                             <div>
                                                 <label className="block text-xs font-bold text-slate-500 mb-2 uppercase">Portada</label>
                                                 {prodForm.imageUrl || imageFile ? (
@@ -837,7 +879,9 @@ const Admin: React.FC<AdminProps> = ({ onLogout }) => {
                                     </div>
                                 </div>
                             </div>
+                            
                             <div className="flex items-center gap-4 py-4"><hr className="flex-1 border-slate-300"/><span className="text-xs font-bold text-slate-400 uppercase tracking-widest bg-slate-100 px-3 py-1 rounded-full border border-slate-200">Configuración Comercial</span><hr className="flex-1 border-slate-300"/></div>
+                            
                             <div className="grid xl:grid-cols-2 gap-8">
                                 <div className="space-y-8">
                                     <CollectionEditor title="Variantes de Precio / Potencias" items={prodForm.pricing} onChange={(items) => setProdForm({...prodForm, pricing: items})} fields={[{ key: 'name', label: 'Nombre Variante', type: 'localized', placeholder: 'Ej: 3.5 kW' }, { key: 'price', label: 'Precio (€)', type: 'number', width: 'w-32' }]} />
@@ -860,30 +904,32 @@ const Admin: React.FC<AdminProps> = ({ onLogout }) => {
         {activeTab === 'quotes' && viewMode === 'list' && (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
              <div className="flex justify-between items-center gap-4">
-                <h3 className="font-bold text-xl text-slate-800 flex items-center gap-2">
+                <h3 className="font-bold text-lg md:text-xl text-slate-800 flex items-center gap-2">
                     {showTrash ? <Trash2 className="text-red-500"/> : <FileText className="text-brand-500"/>}
-                    {showTrash ? 'Papelera de Presupuestos (Clientes)' : 'Registro de Presupuestos'}
+                    {showTrash ? 'Papelera (Clientes)' : 'Registro de Presupuestos'}
                 </h3>
              </div>
             <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-3 focus-within:ring-2 focus-within:ring-brand-500/20 transition-shadow">
                <Search className="text-slate-400" size={20}/>
                <input 
-                 className="flex-1 outline-none text-slate-700 placeholder:text-slate-400 font-medium" 
+                 className="flex-1 outline-none text-slate-700 placeholder:text-slate-400 font-medium text-sm md:text-base" 
                  placeholder="Buscar por cliente o email..." 
                  value={filterText}
                  onChange={(e) => setFilterText(e.target.value)}
                />
             </div>
-            <div className={`bg-white rounded-2xl border ${showTrash ? 'border-red-200' : 'border-slate-200'} shadow-sm overflow-hidden`}>
+            
+            {/* DESKTOP QUOTES TABLE (Hidden on Mobile) */}
+            <div className={`hidden md:block bg-white rounded-2xl border ${showTrash ? 'border-red-200' : 'border-slate-200'} shadow-sm overflow-hidden`}>
                 <table className="w-full text-sm text-left">
                     <thead className="bg-slate-50 text-slate-500 font-bold uppercase text-xs">
                         <tr>
                             <th className="p-4">Fecha</th>
                             <th className="p-4">Cliente</th>
-                            <th className="p-4">WO</th>
                             <th className="p-4">Equipo</th>
                             <th className="p-4">Financiación</th>
                             <th className="p-4 text-center">Docs</th>
+                            <th className="p-4 text-center">Presupuesto</th>
                             <th className="p-4 text-right">Total</th>
                             <th className="p-4 text-center">Estado</th>
                             <th className="p-4 text-right">Acciones</th>
@@ -896,11 +942,7 @@ const Admin: React.FC<AdminProps> = ({ onLogout }) => {
                                 <td className="p-4">
                                     <div className="font-bold text-slate-800">{q.clientName}</div>
                                     <div className="text-xs text-slate-500">{q.clientEmail}</div>
-                                </td>
-                                <td className="p-4">
-                                    {q.wo ? (
-                                        <span className="font-mono bg-slate-100 text-slate-700 px-2 py-1 rounded text-xs font-bold border border-slate-200">{q.wo}</span>
-                                    ) : <span className="text-slate-300">-</span>}
+                                    {q.wo && <div className="mt-1 text-xs bg-slate-100 inline-block px-1 rounded border border-slate-200 text-slate-500">WO: {q.wo}</div>}
                                 </td>
                                 <td className="p-4 text-slate-700 font-medium">{q.brand} {q.model}</td>
                                 <td className="p-4">
@@ -922,16 +964,20 @@ const Admin: React.FC<AdminProps> = ({ onLogout }) => {
                                 <td className="p-4 text-center">
                                     <div className="flex justify-center gap-2">
                                         {q.dniUrl ? (
-                                            <a href={q.dniUrl} target="_blank" className="p-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded transition-colors" title="Ver DNI">
-                                                <CreditCard size={16}/>
-                                            </a>
+                                            <a href={q.dniUrl} target="_blank" className="p-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded transition-colors" title="Ver DNI"><CreditCard size={16}/></a>
                                         ) : <span className="w-7"/>}
                                         {q.incomeUrl ? (
-                                            <a href={q.incomeUrl} target="_blank" className="p-1.5 bg-green-50 text-green-600 hover:bg-green-100 rounded transition-colors" title="Ver Nómina/Ingresos">
-                                                <Image size={16}/>
-                                            </a>
+                                            <a href={q.incomeUrl} target="_blank" className="p-1.5 bg-green-50 text-green-600 hover:bg-green-100 rounded transition-colors" title="Ver Nómina/Ingresos"><Image size={16}/></a>
                                         ) : <span className="w-7"/>}
                                     </div>
+                                </td>
+                                {/* DEDICATED COLUMN FOR PDF LINK */}
+                                <td className="p-4 text-center">
+                                    {q.pdfUrl ? (
+                                        <a href={q.pdfUrl} target="_blank" className="inline-flex items-center gap-1 text-brand-600 font-bold hover:underline">
+                                            <FileText size={16}/> PDF
+                                        </a>
+                                    ) : <span className="text-slate-300">-</span>}
                                 </td>
                                 <td className="p-4 text-right font-bold text-brand-600">{q.price} €</td>
                                 <td className="p-4 text-center">
@@ -945,18 +991,12 @@ const Admin: React.FC<AdminProps> = ({ onLogout }) => {
                                 <td className="p-4 text-right">
                                     <div className="flex justify-end gap-2">
                                         {showTrash ? (
-                                            <button 
-                                                onClick={() => handleRestoreQuote(q.id)}
-                                                className="text-emerald-500 hover:text-emerald-700 p-2 hover:bg-emerald-50 rounded-lg transition-colors font-bold flex items-center gap-1 text-xs"
-                                                title="Restaurar"
-                                            >
-                                                <RotateCcw size={16}/> Restaurar
-                                            </button>
-                                        ) : (
                                             <>
-                                                {q.pdfUrl && <a href={q.pdfUrl} target="_blank" className="p-2 text-slate-400 hover:text-brand-600 hover:bg-brand-50 rounded-lg transition-colors"><FileText size={18}/></a>}
-                                                <button onClick={() => handleDeleteQuote(q.id)} className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors" title="Mover a Papelera"><Trash2 size={18}/></button>
+                                                <button onClick={() => handleRestoreQuote(q.id)} className="text-emerald-500 hover:text-emerald-700 p-2 hover:bg-emerald-50 rounded-lg transition-colors font-bold flex items-center gap-1 text-xs" title="Restaurar"><RotateCcw size={16}/> Restaurar</button>
+                                                <button onClick={() => handleHardDeleteQuote(q.id)} className="text-red-400 hover:text-red-700 p-2 hover:bg-red-50 rounded-lg transition-colors" title="Eliminar Definitivamente"><X size={18}/></button>
                                             </>
+                                        ) : (
+                                            <button onClick={() => handleDeleteQuote(q.id)} className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors" title="Mover a Papelera"><Trash2 size={18}/></button>
                                         )}
                                     </div>
                                 </td>
@@ -965,27 +1005,86 @@ const Admin: React.FC<AdminProps> = ({ onLogout }) => {
                     </tbody>
                 </table>
             </div>
+
+            {/* MOBILE QUOTE LIST (CARDS) */}
+            <div className="md:hidden space-y-4">
+                 {filteredQuotes.map(q => (
+                    <div key={q.id} className={`bg-white p-5 rounded-2xl border ${showTrash ? 'border-red-200' : 'border-slate-200'} shadow-sm`}>
+                        <div className="flex justify-between items-start mb-3">
+                            <div>
+                                <div className="text-xs text-slate-400 font-bold uppercase">{new Date(q.date).toLocaleDateString()}</div>
+                                <div className="font-bold text-slate-900 text-lg leading-tight">{q.clientName}</div>
+                                <div className="text-sm text-slate-500">{q.clientEmail}</div>
+                            </div>
+                            <button onClick={() => toggleQuoteStatus(q)} className={`px-2 py-1 rounded text-[10px] font-bold border uppercase tracking-wide ${q.emailSent ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-yellow-50 text-yellow-700 border-yellow-200'}`}>
+                                {q.emailSent ? 'Enviado' : 'Pendiente'}
+                            </button>
+                        </div>
+
+                        <div className="bg-slate-50 p-3 rounded-xl mb-3 text-sm border border-slate-100">
+                             <div className="flex justify-between mb-1">
+                                <span className="text-slate-500">Modelo:</span>
+                                <span className="font-bold text-slate-700">{q.brand} {q.model}</span>
+                             </div>
+                             <div className="flex justify-between mb-1">
+                                <span className="text-slate-500">Precio Total:</span>
+                                <span className="font-bold text-brand-600 text-base">{q.price} €</span>
+                             </div>
+                             {q.wo && (
+                                 <div className="flex justify-between pt-1 border-t border-slate-200 mt-1">
+                                    <span className="text-slate-400">WO:</span>
+                                    <span className="font-mono text-slate-600">{q.wo}</span>
+                                 </div>
+                             )}
+                        </div>
+
+                        {/* REQUESTED ROW: LINK TO BUDGET */}
+                        {q.pdfUrl && (
+                            <a href={q.pdfUrl} target="_blank" className="flex items-center justify-center gap-2 w-full py-3 bg-brand-50 text-brand-700 font-bold rounded-xl mb-4 border border-brand-100 hover:bg-brand-100 transition-colors shadow-sm">
+                                <FileText size={18}/> Ver Presupuesto Oficial (PDF)
+                            </a>
+                        )}
+
+                        <div className="flex justify-between items-center border-t border-slate-100 pt-3">
+                             <div className="flex gap-2">
+                                {q.dniUrl && <a href={q.dniUrl} target="_blank" className="p-2 bg-blue-50 text-blue-600 rounded-lg"><CreditCard size={18}/></a>}
+                                {q.incomeUrl && <a href={q.incomeUrl} target="_blank" className="p-2 bg-green-50 text-green-600 rounded-lg"><Image size={18}/></a>}
+                             </div>
+                             <div>
+                                 {showTrash ? (
+                                    <div className="flex gap-2">
+                                        <button onClick={() => handleRestoreQuote(q.id)} className="text-emerald-600 bg-emerald-50 px-3 py-2 rounded-lg text-xs font-bold flex items-center gap-1">Restaurar</button>
+                                        <button onClick={() => handleHardDeleteQuote(q.id)} className="p-2 text-red-400 hover:text-red-600 bg-red-50 rounded-lg"><X size={18}/></button>
+                                    </div>
+                                 ) : (
+                                    <button onClick={() => handleDeleteQuote(q.id)} className="p-2 text-red-400 hover:text-red-600 bg-red-50 rounded-lg"><Trash2 size={18}/></button>
+                                 )}
+                             </div>
+                        </div>
+                    </div>
+                 ))}
+            </div>
           </div>
         )}
 
-        {/* ... (Settings Tab remains same) ... */}
+        {/* --- TAB: SETTINGS --- */}
         {activeTab === 'settings' && viewMode === 'list' && (
             <div className="max-w-3xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-2">
-                
-                {/* BRANDING SECTION */}
-                <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm">
-                    <h3 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2"><Award size={20}/> Identidad de Marca</h3>
-                    <div className="grid md:grid-cols-2 gap-8">
+                {/* Responsive Settings Layout */}
+                <div className="bg-white p-5 md:p-8 rounded-2xl border border-slate-200 shadow-sm">
+                    <h3 className="text-lg md:text-xl font-bold text-slate-800 mb-6 flex items-center gap-2"><Award size={20}/> Identidad de Marca</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
                         <div className="space-y-4">
                             <div>
                                 <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Nombre de la Empresa</label>
                                 <input 
-                                    className="w-full border border-slate-300 rounded-lg p-3 outline-none focus:ring-2 focus:ring-brand-500 text-slate-900"
+                                    className="w-full border border-slate-300 rounded-lg p-3 outline-none focus:ring-2 focus:ring-brand-500 text-slate-900 text-sm"
                                     value={companyInfo.brandName}
                                     onChange={e => setCompanyInfo({...companyInfo, brandName: e.target.value})}
                                     placeholder="EcoQuote"
                                 />
                             </div>
+                            {/* ... Rest of branding inputs ... */}
                             <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg border border-slate-200">
                                 <span className="text-sm font-bold text-slate-600 flex-1">Mostrar Logo en Web</span>
                                 <label className="relative inline-flex items-center cursor-pointer">
@@ -1010,7 +1109,7 @@ const Admin: React.FC<AdminProps> = ({ onLogout }) => {
                         </div>
 
                         <div className="space-y-6">
-                            {/* Company Logo Upload */}
+                             {/* Logos Upload Section - Stacks on mobile */}
                             <div className="space-y-2">
                                 <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Logo de Empresa</label>
                                 {companyInfo.logoUrl || companyLogoFile ? (
@@ -1126,8 +1225,8 @@ const Admin: React.FC<AdminProps> = ({ onLogout }) => {
                 </div>
 
                 {/* CONTACT SECTION */}
-                <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm">
-                    <h3 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2"><Settings size={20}/> Datos de Contacto</h3>
+                <div className="bg-white p-5 md:p-8 rounded-2xl border border-slate-200 shadow-sm">
+                    <h3 className="text-lg md:text-xl font-bold text-slate-800 mb-6 flex items-center gap-2"><Settings size={20}/> Datos de Contacto</h3>
                     <div className="space-y-6">
                         {/* Multiple Addresses Management */}
                         <div>
@@ -1137,14 +1236,14 @@ const Admin: React.FC<AdminProps> = ({ onLogout }) => {
                                     onClick={addAddress} 
                                     className="text-xs bg-slate-100 text-brand-600 font-bold px-3 py-1.5 rounded-lg hover:bg-brand-50 transition-colors"
                                 >
-                                    + Añadir Dirección
+                                    + Añadir
                                 </button>
                             </div>
                             <div className="space-y-3">
                                 {companyInfo.addresses && companyInfo.addresses.length > 0 ? (
                                     companyInfo.addresses.map((addr, idx) => (
-                                        <div key={idx} className="flex gap-2 items-start">
-                                            <div className="flex-1 grid grid-cols-3 gap-2">
+                                        <div key={idx} className="flex gap-2 items-start flex-col sm:flex-row bg-slate-50 p-2 rounded-lg sm:bg-transparent sm:p-0">
+                                            <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-2 w-full">
                                                 <input 
                                                     className="col-span-1 border border-slate-300 rounded-lg p-2.5 text-sm outline-none focus:ring-2 focus:ring-brand-500"
                                                     placeholder="Etiqueta (Ej: Central)"
@@ -1160,7 +1259,7 @@ const Admin: React.FC<AdminProps> = ({ onLogout }) => {
                                             </div>
                                             <button 
                                                 onClick={() => removeAddress(idx)}
-                                                className="p-2.5 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors border border-transparent"
+                                                className="p-2.5 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors border border-transparent self-end sm:self-auto"
                                             >
                                                 <Trash2 size={18}/>
                                             </button>
@@ -1174,11 +1273,11 @@ const Admin: React.FC<AdminProps> = ({ onLogout }) => {
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-100">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-slate-100">
                             <div>
                                 <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Teléfono</label>
                                 <input 
-                                    className="w-full border border-slate-300 rounded-lg p-3 outline-none focus:ring-2 focus:ring-brand-500 text-slate-900"
+                                    className="w-full border border-slate-300 rounded-lg p-3 outline-none focus:ring-2 focus:ring-brand-500 text-slate-900 text-sm"
                                     value={companyInfo.phone}
                                     onChange={e => setCompanyInfo({...companyInfo, phone: e.target.value})}
                                     placeholder="Ej: +34 600 000 000"
@@ -1187,7 +1286,7 @@ const Admin: React.FC<AdminProps> = ({ onLogout }) => {
                             <div>
                                 <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Email</label>
                                 <input 
-                                    className="w-full border border-slate-300 rounded-lg p-3 outline-none focus:ring-2 focus:ring-brand-500 text-slate-900"
+                                    className="w-full border border-slate-300 rounded-lg p-3 outline-none focus:ring-2 focus:ring-brand-500 text-slate-900 text-sm"
                                     value={companyInfo.email}
                                     onChange={e => setCompanyInfo({...companyInfo, email: e.target.value})}
                                     placeholder="Ej: info@miempresa.com"

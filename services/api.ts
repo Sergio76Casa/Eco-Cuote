@@ -588,35 +588,33 @@ class AppApi {
     doc.text(`Email: ${companyInfo.email}`, textX, y, { align: 'right' });
     
     // --- TITULO Y FECHA ---
-    y = 35; // Subido para ganar espacio
+    y = 35; 
     doc.setDrawColor(37, 99, 235);
     doc.setLineWidth(0.5);
     doc.line(15, y, 195, y); 
     y += 7;
 
-    // Header WO if exists
-    if (data.client.wo) {
-        doc.setFontSize(10);
-        doc.setTextColor(50, 50, 50);
-        doc.setFont('helvetica', 'bold');
-        doc.text(`Ref. WO: ${data.client.wo}`, 15, y - 2); // Put it above title line
-    }
-
     doc.setTextColor(30, 58, 138);
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
     doc.text("PRESUPUESTO", 15, y);
+    
     doc.setFontSize(9);
     doc.setTextColor(100, 100, 100);
     doc.setFont('helvetica', 'normal');
     doc.text(`Fecha: ${new Date().toLocaleDateString()}`, 195, y, { align: 'right' });
     
-    y += 6;
+    // Header WO if exists (FIX: MOVED TO RIGHT SIDE TO AVOID OVERLAP)
+    if (data.client.wo) {
+        doc.text(`Ref. WO: ${data.client.wo}`, 195, y + 5, { align: 'right' });
+    }
+    
+    y += 10;
 
     // --- INFO CLIENTE (CONDENSADA) ---
     doc.setFillColor(248, 250, 252); 
     doc.setDrawColor(226, 232, 240);
-    doc.roundedRect(15, y, 180, 20, 2, 2, 'FD'); // Reducido de 25 a 20 altura
+    doc.roundedRect(15, y, 180, 20, 2, 2, 'FD'); 
     
     doc.setFontSize(8);
     doc.setTextColor(71, 85, 105);
@@ -639,8 +637,8 @@ class AppApi {
         try {
             const prodImg = await loadImage(productImgUrl);
             const pRatio = prodImg.width / prodImg.height;
-            const imgW = 50; // Reducido ancho
-            const imgH = Math.min(imgW / pRatio, 40); // Cap height at 40mm max
+            const imgW = 50; 
+            const imgH = Math.min(imgW / pRatio, 40); 
             
             const format = this.getImageFormat(productImgUrl);
             doc.addImage(prodImg, format, 15, y, imgW, imgH);
@@ -655,19 +653,23 @@ class AppApi {
             doc.setFont('helvetica', 'normal');
             doc.text("Características Principales:", 70, y + 11);
             
+            let featureHeight = 0;
             if (features && features.length > 0) {
                 let fy = y + 16;
                 doc.setFontSize(8);
                 doc.setTextColor(50, 50, 50);
-                features.slice(0, 4).forEach(f => {
+                // SHOW ALL FEATURES (Removed .slice(0, 4))
+                features.forEach(f => {
                     const title = typeof f.title === 'string' ? f.title : f.title['es'];
                     const splitTitle = doc.splitTextToSize(`• ${title}`, 120);
                     doc.text(splitTitle, 75, fy);
                     fy += (splitTitle.length * 4);
                 });
+                featureHeight = fy - y;
             }
 
-            y += Math.max(imgH, 45) + 8; // Reduce margin after product
+            // Adjust Y based on max height of image or features
+            y += Math.max(imgH + 10, featureHeight + 5); 
 
         } catch (e) { 
             console.warn("Error loading product image", e);
@@ -683,7 +685,7 @@ class AppApi {
 
     // --- TABLA DETALLES ---
     doc.setFillColor(30, 58, 138);
-    doc.rect(15, y, 180, 7, 'F'); // Thinner header
+    doc.rect(15, y, 180, 7, 'F'); 
     doc.setTextColor(255, 255, 255);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(8);

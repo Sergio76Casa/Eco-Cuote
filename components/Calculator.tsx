@@ -4,7 +4,7 @@ import { Product, ClientData } from '../types';
 import { api } from '../services/api';
 import { 
   CheckCircle2, CreditCard, ChevronLeft, Save, 
-  Minus, Plus, ShieldCheck, Download, Loader2, FileText, PenTool, Eraser, Check, Upload, AlertCircle, Wrench
+  Minus, Plus, ShieldCheck, Download, Loader2, FileText, PenTool, Eraser, Check, Upload, AlertCircle, Wrench, X
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { getLangText } from '../i18nUtils';
@@ -103,17 +103,26 @@ const Calculator: React.FC<CalculatorProps> = ({ product, onBack }) => {
         newErrors.email = t('calculator.error.email_invalid');
     }
 
-    // 3. Validate Phone
+    // 3. Validate Phone (Numeric, 9 digits)
+    const phoneRegex = /^[0-9]{9,}$/;
+    const cleanPhone = client.telefono.replace(/\s/g, '');
     if (!client.telefono.trim()) {
         newErrors.telefono = t('calculator.error.required_fields');
-    } else if (client.telefono.trim().length < 9) {
+    } else if (!phoneRegex.test(cleanPhone)) {
         newErrors.telefono = t('calculator.error.phone_invalid');
     }
 
     // 4. Validate Address
     if (!client.direccion.trim()) newErrors.direccion = t('calculator.error.required_fields');
     if (!client.poblacion.trim()) newErrors.poblacion = t('calculator.error.required_fields');
-    if (!client.cp.trim()) newErrors.cp = t('calculator.error.required_fields');
+    
+    // Validate CP (Numeric, 5 digits)
+    const cpRegex = /^[0-9]{5}$/;
+    if (!client.cp.trim()) {
+        newErrors.cp = t('calculator.error.required_fields');
+    } else if (!cpRegex.test(client.cp)) {
+        newErrors.cp = t('calculator.error.cp_invalid');
+    }
 
     // 5. Validate WO (if Technician)
     if (isTechnician) {
@@ -429,15 +438,15 @@ const Calculator: React.FC<CalculatorProps> = ({ product, onBack }) => {
 
       {/* WEB BUDGET MODAL (The Sign & Confirm View) */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-in fade-in duration-200 overflow-y-auto">
-            <div className="bg-white rounded-2xl w-full max-w-5xl shadow-2xl animate-in zoom-in-95 duration-200 overflow-hidden flex flex-col md:flex-row max-h-[95vh]">
+        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-50 flex md:items-center justify-center p-0 md:p-4 animate-in fade-in duration-200 overflow-y-auto">
+            <div className="bg-white w-full max-w-5xl shadow-2xl animate-in zoom-in-95 duration-200 overflow-hidden flex flex-col md:flex-row min-h-screen md:min-h-0 md:max-h-[95vh] md:rounded-2xl relative">
                 
-                {/* Close Button Mobile */}
+                {/* Close Button Mobile - Fixed to top right of modal container */}
                 <button 
                     onClick={() => { setIsModalOpen(false); setStatus('idle'); setLastQuoteUrl(null); }} 
-                    className="absolute top-4 right-4 z-10 p-2 bg-white/20 text-white rounded-full md:hidden"
+                    className="absolute top-4 right-4 z-20 p-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-full md:hidden shadow-sm"
                 >
-                    <ChevronLeft size={24}/>
+                    <X size={24}/>
                 </button>
 
                 {status === 'success' ? (
@@ -462,7 +471,7 @@ const Calculator: React.FC<CalculatorProps> = ({ product, onBack }) => {
                 ) : (
                     <>
                         {/* LEFT: BUDGET SUMMARY (The "Paper" View) */}
-                        <div className="w-full md:w-5/12 bg-slate-50 p-8 border-r border-slate-200 overflow-y-auto custom-scrollbar">
+                        <div className="w-full md:w-5/12 bg-slate-50 p-6 md:p-8 border-b md:border-b-0 md:border-r border-slate-200 overflow-y-auto custom-scrollbar shrink-0">
                             <div className="mb-8">
                                 <h3 className="text-2xl font-black text-slate-900 mb-1">{t('calculator.form.title')}</h3>
                                 <p className="text-slate-500 text-sm">Revisa los detalles antes de firmar.</p>
@@ -513,7 +522,7 @@ const Calculator: React.FC<CalculatorProps> = ({ product, onBack }) => {
                         </div>
 
                         {/* RIGHT: CLIENT FORM & SIGNATURE */}
-                        <div className="w-full md:w-7/12 p-8 bg-white overflow-y-auto custom-scrollbar">
+                        <div className="w-full md:w-7/12 p-5 md:p-8 bg-white overflow-y-auto custom-scrollbar">
                             <h3 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
                                 <span className="bg-slate-900 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs">1</span>
                                 {t('calculator.form.client_title')}
@@ -539,7 +548,7 @@ const Calculator: React.FC<CalculatorProps> = ({ product, onBack }) => {
                                 </span>
                             </label>
 
-                            <div className="grid grid-cols-2 gap-4 mb-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                                 <div>
                                     <label className="block text-xs font-bold text-slate-500 uppercase mb-1">{t('calculator.form.name')}</label>
                                     <input 
@@ -547,7 +556,7 @@ const Calculator: React.FC<CalculatorProps> = ({ product, onBack }) => {
                                         value={client.nombre} 
                                         onChange={e => { setClient({...client,nombre:e.target.value}); if(errors.nombre) { const n={...errors}; delete n.nombre; setErrors(n); } }} 
                                     />
-                                    {errors.nombre && <p className="text-red-500 text-xs mt-1 font-bold">{errors.nombre}</p>}
+                                    {errors.nombre && <p className="text-red-500 text-[10px] mt-1 font-bold">{errors.nombre}</p>}
                                 </div>
                                 <div>
                                     <label className="block text-xs font-bold text-slate-500 uppercase mb-1">{t('calculator.form.surname')}</label>
@@ -556,10 +565,10 @@ const Calculator: React.FC<CalculatorProps> = ({ product, onBack }) => {
                                         value={client.apellidos} 
                                         onChange={e => { setClient({...client,apellidos:e.target.value}); if(errors.apellidos) { const n={...errors}; delete n.apellidos; setErrors(n); } }} 
                                     />
-                                    {errors.apellidos && <p className="text-red-500 text-xs mt-1 font-bold">{errors.apellidos}</p>}
+                                    {errors.apellidos && <p className="text-red-500 text-[10px] mt-1 font-bold">{errors.apellidos}</p>}
                                 </div>
                             </div>
-                            <div className="grid grid-cols-2 gap-4 mb-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                                 <div>
                                     <label className="block text-xs font-bold text-slate-500 uppercase mb-1">{t('calculator.form.email')}</label>
                                     <input 
@@ -568,7 +577,7 @@ const Calculator: React.FC<CalculatorProps> = ({ product, onBack }) => {
                                         value={client.email} 
                                         onChange={e => { setClient({...client,email:e.target.value}); if(errors.email) { const n={...errors}; delete n.email; setErrors(n); } }} 
                                     />
-                                    {errors.email && <p className="text-red-500 text-xs mt-1 font-bold">{errors.email}</p>}
+                                    {errors.email && <p className="text-red-500 text-[10px] mt-1 font-bold">{errors.email}</p>}
                                 </div>
                                 <div>
                                     <label className="block text-xs font-bold text-slate-500 uppercase mb-1">{t('calculator.form.phone')}</label>
@@ -578,7 +587,7 @@ const Calculator: React.FC<CalculatorProps> = ({ product, onBack }) => {
                                         value={client.telefono} 
                                         onChange={e => { setClient({...client,telefono:e.target.value}); if(errors.telefono) { const n={...errors}; delete n.telefono; setErrors(n); } }} 
                                     />
-                                    {errors.telefono && <p className="text-red-500 text-xs mt-1 font-bold">{errors.telefono}</p>}
+                                    {errors.telefono && <p className="text-red-500 text-[10px] mt-1 font-bold">{errors.telefono}</p>}
                                 </div>
                             </div>
                             
@@ -597,28 +606,35 @@ const Calculator: React.FC<CalculatorProps> = ({ product, onBack }) => {
                                             if(errors.wo) { const n={...errors}; delete n.wo; setErrors(n); }
                                         }} 
                                     />
-                                    {errors.wo && <p className="text-red-500 text-xs mt-1 font-bold">{errors.wo}</p>}
+                                    {errors.wo && <p className="text-red-500 text-[10px] mt-1 font-bold">{errors.wo}</p>}
                                 </div>
                             )}
 
                             <div className="mb-8">
                                 <label className="block text-xs font-bold text-slate-500 uppercase mb-1">{t('calculator.form.address')}</label>
-                                <div className="grid grid-cols-4 gap-2 mb-2">
-                                    <div className="col-span-1">
+                                <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 sm:gap-3 mb-2 sm:mb-3">
+                                    <div className="sm:col-span-1">
                                         <input 
                                             className={`w-full bg-white border p-2.5 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none text-slate-900 ${errors.cp ? 'border-red-500' : 'border-slate-300'}`} 
                                             placeholder={t('calculator.form.zip')} 
                                             value={client.cp} 
-                                            onChange={e => { setClient({...client,cp:e.target.value}); if(errors.cp) { const n={...errors}; delete n.cp; setErrors(n); } }} 
+                                            maxLength={5}
+                                            onChange={e => { 
+                                                const val = e.target.value.replace(/\D/g, '').slice(0, 5);
+                                                setClient({...client,cp:val}); 
+                                                if(errors.cp) { const n={...errors}; delete n.cp; setErrors(n); } 
+                                            }} 
                                         />
+                                        {errors.cp && <p className="text-red-500 text-[10px] mt-1 font-bold">{errors.cp}</p>}
                                     </div>
-                                    <div className="col-span-3">
+                                    <div className="sm:col-span-3">
                                         <input 
                                             className={`w-full bg-white border p-2.5 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none text-slate-900 ${errors.poblacion ? 'border-red-500' : 'border-slate-300'}`} 
                                             placeholder={t('calculator.form.city')} 
                                             value={client.poblacion} 
                                             onChange={e => { setClient({...client,poblacion:e.target.value}); if(errors.poblacion) { const n={...errors}; delete n.poblacion; setErrors(n); } }} 
                                         />
+                                        {errors.poblacion && <p className="text-red-500 text-[10px] mt-1 font-bold">{errors.poblacion}</p>}
                                     </div>
                                 </div>
                                 <input 
@@ -627,7 +643,7 @@ const Calculator: React.FC<CalculatorProps> = ({ product, onBack }) => {
                                     value={client.direccion} 
                                     onChange={e => { setClient({...client,direccion:e.target.value}); if(errors.direccion) { const n={...errors}; delete n.direccion; setErrors(n); } }} 
                                 />
-                                {(errors.cp || errors.poblacion || errors.direccion) && <p className="text-red-500 text-xs mt-1 font-bold">{t('calculator.error.required_fields')}</p>}
+                                {errors.direccion && <p className="text-red-500 text-[10px] mt-1 font-bold">{errors.direccion}</p>}
                             </div>
 
                             {/* Financing Documents Section */}
@@ -635,7 +651,7 @@ const Calculator: React.FC<CalculatorProps> = ({ product, onBack }) => {
                                 <div className="mb-8 bg-blue-50 p-4 rounded-xl border border-blue-100">
                                     <h4 className="font-bold text-blue-800 text-sm uppercase mb-3">{t('calculator.form.financing_docs_title')}</h4>
                                     
-                                    <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <div>
                                             <label className="block text-xs font-bold text-blue-700 uppercase mb-1">{t('calculator.form.dni')}</label>
                                             <div className={`relative bg-white rounded-lg border p-1 ${errors.dni ? 'border-red-500 ring-1 ring-red-200' : 'border-slate-200'}`}>
@@ -680,7 +696,7 @@ const Calculator: React.FC<CalculatorProps> = ({ product, onBack }) => {
                             <div className="border-2 border-dashed border-slate-300 rounded-xl bg-slate-50 relative mb-4">
                                 <SignatureCanvas 
                                     ref={sigPad}
-                                    canvasProps={{className: 'w-full h-40 cursor-crosshair'}}
+                                    canvasProps={{className: 'w-full h-40 cursor-crosshair touch-none'}} // Added touch-none
                                     // @ts-ignore
                                     onEnd={() => setHasSignature(true)}
                                 />
@@ -712,17 +728,17 @@ const Calculator: React.FC<CalculatorProps> = ({ product, onBack }) => {
                                 <span className="text-sm text-slate-600">{t('calculator.form.legal_accept')}</span>
                             </label>
 
-                            <div className="flex gap-4 pt-4 border-t border-slate-100">
+                            <div className="flex flex-col sm:flex-row gap-4 pt-4 border-t border-slate-100 pb-20 md:pb-0"> {/* Added pb for mobile scrolling comfort */}
                                 <button 
                                     onClick={() => setIsModalOpen(false)} 
-                                    className="flex-1 py-3 text-slate-500 font-bold hover:bg-slate-100 rounded-xl transition-colors"
+                                    className="w-full sm:flex-1 py-3 text-slate-500 font-bold hover:bg-slate-100 rounded-xl transition-colors order-2 sm:order-1"
                                 >
                                     {t('calculator.form.cancel')}
                                 </button>
                                 <button 
                                     onClick={handleSave} 
                                     disabled={status === 'loading'}
-                                    className="flex-[2] py-3 bg-brand-600 hover:bg-brand-700 text-white rounded-xl font-bold shadow-lg shadow-brand-200 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="w-full sm:flex-[2] py-3 bg-brand-600 hover:bg-brand-700 text-white rounded-xl font-bold shadow-lg shadow-brand-200 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed order-1 sm:order-2"
                                 >
                                     {status === 'loading' ? <Loader2 className="animate-spin" size={20}/> : <PenTool size={20}/>}
                                     {t('calculator.form.submit')}
