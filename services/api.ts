@@ -660,10 +660,12 @@ class AppApi {
                 doc.setTextColor(50, 50, 50);
                 // SHOW ALL FEATURES (Removed .slice(0, 4))
                 features.forEach(f => {
-                    const title = typeof f.title === 'string' ? f.title : f.title['es'];
-                    const splitTitle = doc.splitTextToSize(`• ${title}`, 120);
-                    doc.text(splitTitle, 75, fy);
-                    fy += (splitTitle.length * 4);
+                    // CHANGED: Show description instead of title
+                    const description = typeof f.description === 'string' ? f.description : (f.description['es'] || '');
+                    const textToPrint = description || '';
+                    const splitText = doc.splitTextToSize(`• ${textToPrint}`, 120);
+                    doc.text(splitText, 75, fy);
+                    fy += (splitText.length * 4);
                 });
                 featureHeight = fy - y;
             }
