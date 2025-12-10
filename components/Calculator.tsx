@@ -4,7 +4,7 @@ import { Product, ClientData } from '../types';
 import { api } from '../services/api';
 import { 
   CheckCircle2, CreditCard, ChevronLeft, Save, 
-  Minus, Plus, ShieldCheck, Download, Loader2, FileText, PenTool, Eraser, Check, Upload, AlertCircle, Wrench, X
+  Minus, Plus, ShieldCheck, Download, Loader2, FileText, PenTool, Eraser, Check, Upload, AlertCircle, Wrench, X, FileUp
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { getLangText } from '../i18nUtils';
@@ -140,13 +140,20 @@ const Calculator: React.FC<CalculatorProps> = ({ product, onBack }) => {
         if (!incomeFile) newErrors.income = t('calculator.error.docs_required');
     }
 
+    // Signature Validation
+    if (sigPad.current?.isEmpty()) {
+        setGlobalError("La firma es obligatoria para procesar el pedido.");
+        return; // Stop here if no signature
+    }
+
     if (!legalAccepted) {
-      setGlobalError(t('calculator.form.legal_accept')); // Using global for legal check
+      setGlobalError(t('calculator.form.legal_accept')); 
       return;
     }
 
     if (Object.keys(newErrors).length > 0) {
         setErrors(newErrors);
+        setGlobalError("Por favor, corrige los errores marcados en rojo.");
         return;
     }
 
@@ -528,14 +535,6 @@ const Calculator: React.FC<CalculatorProps> = ({ product, onBack }) => {
                                 {t('calculator.form.client_title')}
                             </h3>
                             
-                            {/* GLOBAL ERROR MESSAGE BOX */}
-                            {globalError && (
-                                <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-center gap-3 text-red-700 animate-in fade-in slide-in-from-top-2">
-                                    <AlertCircle size={20} className="shrink-0"/>
-                                    <span className="text-sm font-bold">{globalError}</span>
-                                </div>
-                            )}
-
                             {/* TECHNICIAN TOGGLE */}
                             <label className="flex items-center gap-3 mb-6 p-3 bg-slate-50 border border-slate-200 rounded-xl cursor-pointer hover:bg-slate-100 transition-colors">
                                 <div className="relative inline-flex items-center cursor-pointer">
@@ -646,43 +645,66 @@ const Calculator: React.FC<CalculatorProps> = ({ product, onBack }) => {
                                 {errors.direccion && <p className="text-red-500 text-[10px] mt-1 font-bold">{errors.direccion}</p>}
                             </div>
 
-                            {/* Financing Documents Section */}
+                            {/* Financing Documents Section - REDESIGNED */}
                             {financeIdx >= 0 && financeData[financeIdx] && (
-                                <div className="mb-8 bg-blue-50 p-4 rounded-xl border border-blue-100">
-                                    <h4 className="font-bold text-blue-800 text-sm uppercase mb-3">{t('calculator.form.financing_docs_title')}</h4>
+                                <div className="mb-8 bg-blue-50 p-5 rounded-2xl border border-blue-100 shadow-sm">
+                                    <h4 className="font-bold text-blue-800 text-sm uppercase mb-4 flex items-center gap-2">
+                                        <Upload size={16}/> {t('calculator.form.financing_docs_title')}
+                                    </h4>
                                     
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                        <div>
-                                            <label className="block text-xs font-bold text-blue-700 uppercase mb-1">{t('calculator.form.dni')}</label>
-                                            <div className={`relative bg-white rounded-lg border p-1 ${errors.dni ? 'border-red-500 ring-1 ring-red-200' : 'border-slate-200'}`}>
+                                    <div className="flex flex-col gap-4">
+                                        {/* DNI Upload */}
+                                        <div className={`bg-white rounded-xl border p-4 transition-all ${errors.dni ? 'border-red-300 ring-2 ring-red-100' : 'border-slate-200 hover:border-blue-300'}`}>
+                                            <div className="flex justify-between items-center mb-2">
+                                                <label className="text-xs font-bold text-slate-500 uppercase">{t('calculator.form.dni')}</label>
+                                                {dniFile && <span className="bg-green-100 text-green-700 text-[10px] font-bold px-2 py-0.5 rounded flex items-center gap-1"><Check size={10}/> Subido</span>}
+                                            </div>
+                                            <label className="flex items-center gap-3 cursor-pointer group">
+                                                <div className="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center text-slate-400 group-hover:bg-blue-100 group-hover:text-blue-600 transition-colors">
+                                                    <FileUp size={20}/>
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-sm font-medium text-slate-700 truncate">{dniFile ? dniFile.name : 'Seleccionar archivo...'}</p>
+                                                    <p className="text-[10px] text-slate-400">PDF o Imagen (Máx 5MB)</p>
+                                                </div>
                                                 <input 
                                                     type="file" 
                                                     accept="image/*,.pdf"
+                                                    className="hidden"
                                                     onChange={(e) => { 
-                                                        if(e.target.files) setDniFile(e.target.files[0]);
+                                                        if(e.target.files && e.target.files[0]) setDniFile(e.target.files[0]);
                                                         if(errors.dni) { const n={...errors}; delete n.dni; setErrors(n); }
                                                     }}
-                                                    className="w-full text-xs text-slate-500 file:mr-2 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200 cursor-pointer bg-transparent"
                                                 />
-                                                {dniFile && <CheckCircle2 className="absolute right-2 top-2 text-green-500" size={16}/>}
-                                            </div>
-                                            {errors.dni && <p className="text-red-500 text-[10px] mt-1 font-bold">{errors.dni}</p>}
+                                            </label>
+                                            {errors.dni && <p className="text-red-500 text-[10px] mt-2 font-bold">{errors.dni}</p>}
                                         </div>
-                                        <div>
-                                            <label className="block text-xs font-bold text-blue-700 uppercase mb-1">{t('calculator.form.income')}</label>
-                                            <div className={`relative bg-white rounded-lg border p-1 ${errors.income ? 'border-red-500 ring-1 ring-red-200' : 'border-slate-200'}`}>
+
+                                        {/* Income Upload */}
+                                        <div className={`bg-white rounded-xl border p-4 transition-all ${errors.income ? 'border-red-300 ring-2 ring-red-100' : 'border-slate-200 hover:border-blue-300'}`}>
+                                            <div className="flex justify-between items-center mb-2">
+                                                <label className="text-xs font-bold text-slate-500 uppercase">{t('calculator.form.income')}</label>
+                                                {incomeFile && <span className="bg-green-100 text-green-700 text-[10px] font-bold px-2 py-0.5 rounded flex items-center gap-1"><Check size={10}/> Subido</span>}
+                                            </div>
+                                            <label className="flex items-center gap-3 cursor-pointer group">
+                                                <div className="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center text-slate-400 group-hover:bg-blue-100 group-hover:text-blue-600 transition-colors">
+                                                    <FileUp size={20}/>
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-sm font-medium text-slate-700 truncate">{incomeFile ? incomeFile.name : 'Seleccionar archivo...'}</p>
+                                                    <p className="text-[10px] text-slate-400">PDF o Imagen (Máx 5MB)</p>
+                                                </div>
                                                 <input 
                                                     type="file" 
                                                     accept="image/*,.pdf"
+                                                    className="hidden"
                                                     onChange={(e) => {
-                                                        if(e.target.files) setIncomeFile(e.target.files[0]);
+                                                        if(e.target.files && e.target.files[0]) setIncomeFile(e.target.files[0]);
                                                         if(errors.income) { const n={...errors}; delete n.income; setErrors(n); }
                                                     }}
-                                                    className="w-full text-xs text-slate-500 file:mr-2 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200 cursor-pointer bg-transparent"
                                                 />
-                                                {incomeFile && <CheckCircle2 className="absolute right-2 top-2 text-green-500" size={16}/>}
-                                            </div>
-                                            {errors.income && <p className="text-red-500 text-[10px] mt-1 font-bold">{errors.income}</p>}
+                                            </label>
+                                            {errors.income && <p className="text-red-500 text-[10px] mt-2 font-bold">{errors.income}</p>}
                                         </div>
                                     </div>
                                 </div>
@@ -693,22 +715,28 @@ const Calculator: React.FC<CalculatorProps> = ({ product, onBack }) => {
                                 {t('calculator.form.sign_title')}
                             </h3>
 
-                            <div className="border-2 border-dashed border-slate-300 rounded-xl bg-slate-50 relative mb-4">
+                            {/* SIGNATURE PAD */}
+                            <div className="border-2 border-dashed border-slate-300 rounded-xl bg-white relative mb-4 overflow-hidden shadow-sm">
                                 <SignatureCanvas 
                                     ref={sigPad}
-                                    canvasProps={{className: 'w-full h-40 cursor-crosshair touch-none'}} // Added touch-none
-                                    // @ts-ignore
+                                    penColor='black'
+                                    backgroundColor='white'
+                                    canvasProps={{
+                                        className: 'w-full h-48 cursor-crosshair touch-none block',
+                                        style: { width: '100%', height: '12rem' }
+                                    }} 
                                     onEnd={() => setHasSignature(true)}
                                 />
                                 {!hasSignature && (
-                                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none text-slate-400 font-medium">
+                                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none text-slate-400 font-medium bg-white/50">
                                         <PenTool className="mr-2" size={20}/> Firme aquí con el dedo o ratón
                                     </div>
                                 )}
                                 <button 
                                     onClick={clearSignature}
-                                    className="absolute top-2 right-2 p-1.5 bg-white border border-slate-200 rounded-lg text-slate-400 hover:text-red-500 shadow-sm transition-colors"
-                                    title="Borrar"
+                                    className="absolute top-2 right-2 p-1.5 bg-white border border-slate-200 rounded-lg text-slate-400 hover:text-red-500 shadow-sm transition-colors z-10"
+                                    title="Borrar Firma"
+                                    type="button"
                                 >
                                     <Eraser size={16}/>
                                 </button>
@@ -728,7 +756,15 @@ const Calculator: React.FC<CalculatorProps> = ({ product, onBack }) => {
                                 <span className="text-sm text-slate-600">{t('calculator.form.legal_accept')}</span>
                             </label>
 
-                            <div className="flex flex-col sm:flex-row gap-4 pt-4 border-t border-slate-100 pb-20 md:pb-0"> {/* Added pb for mobile scrolling comfort */}
+                            {/* GLOBAL ERROR MESSAGE BOX - VISIBLE NEAR BUTTON */}
+                            {globalError && (
+                                <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-center gap-3 text-red-700 animate-in fade-in slide-in-from-bottom-2">
+                                    <AlertCircle size={20} className="shrink-0"/>
+                                    <span className="text-sm font-bold">{globalError}</span>
+                                </div>
+                            )}
+
+                            <div className="flex flex-col sm:flex-row gap-4 pt-4 border-t border-slate-100 pb-20 md:pb-0"> 
                                 <button 
                                     onClick={() => setIsModalOpen(false)} 
                                     className="w-full sm:flex-1 py-3 text-slate-500 font-bold hover:bg-slate-100 rounded-xl transition-colors order-2 sm:order-1"
