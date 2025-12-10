@@ -518,14 +518,27 @@ class AppApi {
     const doc = new jsPDF();
     const companyInfo = await this.getCompanyInfo();
 
+    // Enhanced loadImage with timeout to prevent infinite hanging
     const loadImage = (url: string): Promise<HTMLImageElement> => {
         return new Promise((resolve, reject) => {
             const img = new Image();
             img.crossOrigin = 'Anonymous';
             const sep = url.includes('?') ? '&' : '?';
             img.src = `${url}${sep}t=${new Date().getTime()}`;
-            img.onload = () => resolve(img);
-            img.onerror = (e) => reject(e);
+            
+            // Timeout to reject if image loads too slowly (5 seconds)
+            const timeoutId = setTimeout(() => {
+                reject(new Error("Image load timeout"));
+            }, 5000);
+
+            img.onload = () => {
+                clearTimeout(timeoutId);
+                resolve(img);
+            };
+            img.onerror = (e) => {
+                clearTimeout(timeoutId);
+                reject(e);
+            };
         });
     };
 
@@ -611,26 +624,42 @@ class AppApi {
     
     y += 10;
 
-    // --- INFO CLIENTE (CONDENSADA) ---
-    doc.setFillColor(248, 250, 252); 
-    doc.setDrawColor(226, 232, 240);
-    doc.roundedRect(15, y, 180, 20, 2, 2, 'FD'); 
-    
+    // --- INFO CLIENTE (PROFESIONAL) ---
+    doc.setFillColor(248, 250, 252);
+    doc.setDrawColor(203, 213, 225); // Slightly darker border
+    doc.roundedRect(15, y, 180, 28, 3, 3, 'FD');
+
+    // Left Column: Identity
+    doc.setFontSize(7);
+    doc.setTextColor(100, 116, 139); // Slate-500
+    doc.setFont('helvetica', 'bold');
+    doc.text("CLIENTE", 22, y + 8);
+
+    doc.setFontSize(10);
+    doc.setTextColor(15, 23, 42); // Slate-900
+    doc.text(`${data.client.nombre} ${data.client.apellidos}`, 22, y + 14);
+
+    // Address Line (Explicit Label)
+    doc.setFontSize(8);
+    doc.setTextColor(71, 85, 105); // Slate-600
+    doc.setFont('helvetica', 'normal');
+    const fullAddress = `${data.client.direccion}, ${data.client.cp ? data.client.cp + ' ' : ''}${data.client.poblacion}`;
+    doc.text(`Dirección: ${fullAddress}`, 22, y + 21);
+
+    // Right Column: Contact
+    const rightColX = 120;
+    doc.setFontSize(7);
+    doc.setTextColor(100, 116, 139);
+    doc.setFont('helvetica', 'bold');
+    doc.text("CONTACTO", rightColX, y + 8);
+
     doc.setFontSize(8);
     doc.setTextColor(71, 85, 105);
-    doc.setFont('helvetica', 'bold');
-    doc.text("Cliente:", 20, y + 6);
-    
     doc.setFont('helvetica', 'normal');
-    doc.setTextColor(30, 41, 59);
-    // Row 1
-    doc.text(`${data.client.nombre} ${data.client.apellidos}`, 35, y + 6);
-    doc.text(`Email: ${data.client.email}`, 120, y + 6);
-    // Row 2
-    doc.text(`${data.client.direccion}, ${data.client.poblacion}`, 35, y + 12);
-    doc.text(`Tel: ${data.client.telefono}`, 120, y + 12);
+    doc.text(`Email: ${data.client.email}`, rightColX, y + 14);
+    doc.text(`Tel: ${data.client.telefono}`, rightColX, y + 19);
 
-    y += 28;
+    y += 36; // Increased spacing after box
 
     // --- SECCIÓN VISUAL DEL PRODUCTO ---
     if (productImgUrl) {
@@ -779,6 +808,7 @@ class AppApi {
         
         try {
             // Posicionamos la firma a la derecha (x=125)
+            // Fix: signature can be a raw base64 string
             doc.addImage(data.signature, 'PNG', 125, bottomY + 8, 40, 20);
             doc.setFontSize(6);
             doc.setTextColor(150, 150, 150);

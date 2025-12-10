@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Product, ClientData } from '../types';
 import { api } from '../services/api';
 import { 
@@ -49,6 +49,7 @@ const Calculator: React.FC<CalculatorProps> = ({ product, onBack }) => {
   
   // Signature State
   const sigPad = useRef<SignatureCanvas>(null);
+  const sigContainer = useRef<HTMLDivElement>(null);
   const [hasSignature, setHasSignature] = useState(false);
 
   // Financing Documents
@@ -67,6 +68,31 @@ const Calculator: React.FC<CalculatorProps> = ({ product, onBack }) => {
     });
     return t;
   }, [selectedModel, selectedKit, extrasQty, extrasData]);
+
+  // --- Effects ---
+  // Fix for signature canvas size
+  useEffect(() => {
+    if (isModalOpen && sigContainer.current && sigPad.current) {
+        // Small delay to ensure modal transition is finished and dimensions are correct
+        const timer = setTimeout(() => {
+            const container = sigContainer.current;
+            const canvas = sigPad.current?.getCanvas();
+            if (container && canvas) {
+                // Set buffer size to match display size for correct coordinate mapping
+                const ratio = Math.max(window.devicePixelRatio || 1, 1);
+                canvas.width = container.offsetWidth * ratio;
+                canvas.height = container.offsetHeight * ratio;
+                const ctx = canvas.getContext("2d");
+                if (ctx) ctx.scale(ratio, ratio);
+                
+                // Clear to prevent artifacts
+                sigPad.current?.clear(); 
+                setHasSignature(false);
+            }
+        }, 300); // 300ms matches modal animation duration roughly
+        return () => clearTimeout(timer);
+    }
+  }, [isModalOpen]);
 
   // --- Handlers ---
   const updateQty = (id: string, delta: number) => {
@@ -159,49 +185,56 @@ const Calculator: React.FC<CalculatorProps> = ({ product, onBack }) => {
 
     setStatus('loading');
 
-    // Use current language for PDF generation context if possible
-    let finText = t('calculator.payment.cash'); 
-    if (financeIdx >= 0 && financeData[financeIdx]) {
-      const f = financeData[financeIdx];
-      let monthlyPayment = 0;
-      let totalFinanced = 0;
-      const label = getLangText(f.label, i18n.language);
-
-      // Logic for Coefficients (From PDFs) vs Commission %
-      if (f.coefficient) {
-          monthlyPayment = total * f.coefficient;
-          totalFinanced = monthlyPayment * f.months;
-          finText = `${label}\n${t('calculator.payment.fee')}: ${formatCurrency(monthlyPayment)}/${t('calculator.payment.month')}\n${t('calculator.payment.total_pay')}: ${formatCurrency(totalFinanced)}`;
-      } else if (f.commission !== undefined) {
-          totalFinanced = total * (1 + f.commission / 100);
-          monthlyPayment = totalFinanced / f.months;
-          finText = `${label}\n${t('calculator.payment.fee')}: ${formatCurrency(monthlyPayment)}/${t('calculator.payment.month')}\n${t('calculator.payment.total_pay')}: ${formatCurrency(totalFinanced)} (${f.commission}%)`;
-      }
-    }
-
-    // Build the list of included items (Installation Kit + Optional Extras)
-    const itemsList: string[] = [];
-    
-    // 1. Add Installation Kit (Essential for PDF)
-    const kitName = getLangText(selectedKit.name, i18n.language);
-    itemsList.push(`${t('calculator.summary.installation')}: ${kitName}`);
-
-    // 2. Add Extras
-    Object.entries(extrasQty).forEach(([id, qty]) => {
-      const e = extrasData.find(x => x.id === id);
-      const name = e ? getLangText(e.name, i18n.language) : '';
-      if (name && (qty as number) > 0) {
-          itemsList.push((qty as number) > 1 ? `${name} (x${qty})` : name);
-      }
-    });
-
-    // Get Signature Image if available
-    let signatureImage = undefined;
-    if (!sigPad.current?.isEmpty()) {
-        signatureImage = sigPad.current?.getTrimmedCanvas().toDataURL('image/png');
-    }
-
     try {
+      // Use current language for PDF generation context if possible
+      let finText = t('calculator.payment.cash'); 
+      if (financeIdx >= 0 && financeData[financeIdx]) {
+        const f = financeData[financeIdx];
+        let monthlyPayment = 0;
+        let totalFinanced = 0;
+        const label = getLangText(f.label, i18n.language);
+
+        // Logic for Coefficients (From PDFs) vs Commission %
+        if (f.coefficient) {
+            monthlyPayment = total * f.coefficient;
+            totalFinanced = monthlyPayment * f.months;
+            finText = `${label}\n${t('calculator.payment.fee')}: ${formatCurrency(monthlyPayment)}/${t('calculator.payment.month')}\n${t('calculator.payment.total_pay')}: ${formatCurrency(totalFinanced)}`;
+        } else if (f.commission !== undefined) {
+            totalFinanced = total * (1 + f.commission / 100);
+            monthlyPayment = totalFinanced / f.months;
+            finText = `${label}\n${t('calculator.payment.fee')}: ${formatCurrency(monthlyPayment)}/${t('calculator.payment.month')}\n${t('calculator.payment.total_pay')}: ${formatCurrency(totalFinanced)} (${f.commission}%)`;
+        }
+      }
+
+      // Build the list of included items (Installation Kit + Optional Extras)
+      const itemsList: string[] = [];
+      
+      // 1. Add Installation Kit (Essential for PDF)
+      const kitName = getLangText(selectedKit.name, i18n.language);
+      itemsList.push(`${t('calculator.summary.installation')}: ${kitName}`);
+
+      // 2. Add Extras
+      Object.entries(extrasQty).forEach(([id, qty]) => {
+        const e = extrasData.find(x => x.id === id);
+        const name = e ? getLangText(e.name, i18n.language) : '';
+        if (name && (qty as number) > 0) {
+            itemsList.push((qty as number) > 1 ? `${name} (x${qty})` : name);
+        }
+      });
+
+      // Get Signature Image with robust error handling
+      let signatureImage = undefined;
+      if (sigPad.current && !sigPad.current.isEmpty()) {
+          try {
+            // Attempt to get trimmed canvas (might fail if dimensions are 0)
+            signatureImage = sigPad.current.getTrimmedCanvas().toDataURL('image/png');
+          } catch (e) {
+            console.warn("Error trimming signature, falling back to full canvas", e);
+            // Fallback: use raw canvas which is safer but might have whitespace
+            signatureImage = sigPad.current.getCanvas().toDataURL('image/png');
+          }
+      }
+
       // Upload Financing Documents if needed
       let dniUrl = undefined;
       let incomeUrl = undefined;
@@ -645,22 +678,22 @@ const Calculator: React.FC<CalculatorProps> = ({ product, onBack }) => {
                                 {errors.direccion && <p className="text-red-500 text-[10px] mt-1 font-bold">{errors.direccion}</p>}
                             </div>
 
-                            {/* Financing Documents Section - REDESIGNED */}
+                            {/* Financing Documents Section - REDESIGNED: Stacked Vertically */}
                             {financeIdx >= 0 && financeData[financeIdx] && (
                                 <div className="mb-8 bg-blue-50 p-5 rounded-2xl border border-blue-100 shadow-sm">
                                     <h4 className="font-bold text-blue-800 text-sm uppercase mb-4 flex items-center gap-2">
                                         <Upload size={16}/> {t('calculator.form.financing_docs_title')}
                                     </h4>
                                     
-                                    <div className="flex flex-col gap-4">
+                                    <div className="flex flex-col gap-4 w-full">
                                         {/* DNI Upload */}
-                                        <div className={`bg-white rounded-xl border p-4 transition-all ${errors.dni ? 'border-red-300 ring-2 ring-red-100' : 'border-slate-200 hover:border-blue-300'}`}>
+                                        <div className={`w-full bg-white rounded-xl border p-4 transition-all ${errors.dni ? 'border-red-300 ring-2 ring-red-100' : 'border-slate-200 hover:border-blue-300'}`}>
                                             <div className="flex justify-between items-center mb-2">
                                                 <label className="text-xs font-bold text-slate-500 uppercase">{t('calculator.form.dni')}</label>
                                                 {dniFile && <span className="bg-green-100 text-green-700 text-[10px] font-bold px-2 py-0.5 rounded flex items-center gap-1"><Check size={10}/> Subido</span>}
                                             </div>
-                                            <label className="flex items-center gap-3 cursor-pointer group">
-                                                <div className="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center text-slate-400 group-hover:bg-blue-100 group-hover:text-blue-600 transition-colors">
+                                            <label className="flex items-center gap-3 cursor-pointer group w-full">
+                                                <div className="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center text-slate-400 group-hover:bg-blue-100 group-hover:text-blue-600 transition-colors shrink-0">
                                                     <FileUp size={20}/>
                                                 </div>
                                                 <div className="flex-1 min-w-0">
@@ -681,13 +714,13 @@ const Calculator: React.FC<CalculatorProps> = ({ product, onBack }) => {
                                         </div>
 
                                         {/* Income Upload */}
-                                        <div className={`bg-white rounded-xl border p-4 transition-all ${errors.income ? 'border-red-300 ring-2 ring-red-100' : 'border-slate-200 hover:border-blue-300'}`}>
+                                        <div className={`w-full bg-white rounded-xl border p-4 transition-all ${errors.income ? 'border-red-300 ring-2 ring-red-100' : 'border-slate-200 hover:border-blue-300'}`}>
                                             <div className="flex justify-between items-center mb-2">
                                                 <label className="text-xs font-bold text-slate-500 uppercase">{t('calculator.form.income')}</label>
                                                 {incomeFile && <span className="bg-green-100 text-green-700 text-[10px] font-bold px-2 py-0.5 rounded flex items-center gap-1"><Check size={10}/> Subido</span>}
                                             </div>
-                                            <label className="flex items-center gap-3 cursor-pointer group">
-                                                <div className="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center text-slate-400 group-hover:bg-blue-100 group-hover:text-blue-600 transition-colors">
+                                            <label className="flex items-center gap-3 cursor-pointer group w-full">
+                                                <div className="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center text-slate-400 group-hover:bg-blue-100 group-hover:text-blue-600 transition-colors shrink-0">
                                                     <FileUp size={20}/>
                                                 </div>
                                                 <div className="flex-1 min-w-0">
@@ -716,19 +749,19 @@ const Calculator: React.FC<CalculatorProps> = ({ product, onBack }) => {
                             </h3>
 
                             {/* SIGNATURE PAD */}
-                            <div className="border-2 border-dashed border-slate-300 rounded-xl bg-white relative mb-4 overflow-hidden shadow-sm">
+                            <div ref={sigContainer} className="border-2 border-dashed border-slate-300 rounded-xl bg-white relative mb-4 overflow-hidden shadow-sm h-64 touch-none select-none w-full">
                                 <SignatureCanvas 
                                     ref={sigPad}
                                     penColor='black'
                                     backgroundColor='white'
                                     canvasProps={{
-                                        className: 'w-full h-48 cursor-crosshair touch-none block',
-                                        style: { width: '100%', height: '12rem' }
+                                        className: 'w-full h-full cursor-crosshair block',
+                                        style: { width: '100%', height: '100%' }
                                     }} 
                                     onEnd={() => setHasSignature(true)}
                                 />
                                 {!hasSignature && (
-                                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none text-slate-400 font-medium bg-white/50">
+                                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none text-slate-400 font-medium bg-white/50 z-0">
                                         <PenTool className="mr-2" size={20}/> Firme aquí con el dedo o ratón
                                     </div>
                                 )}
