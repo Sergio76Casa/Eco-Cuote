@@ -589,13 +589,19 @@ class AppApi {
     doc.setTextColor(100, 100, 100);
     doc.setFont('helvetica', 'normal');
     
-    let addressText = companyInfo.address;
+    // Addresses - Render ALL addresses if available
     if(companyInfo.addresses && companyInfo.addresses.length > 0) {
-        addressText = companyInfo.addresses[0].value; 
+        companyInfo.addresses.forEach(addr => {
+            const label = addr.label ? `${addr.label}: ` : '';
+            doc.text(`${label}${addr.value}`, textX, y, { align: 'right' });
+            y += 3.5;
+        });
+    } else {
+        // Fallback to single address
+        doc.text(companyInfo.address || '', textX, y, { align: 'right' });
+        y += 3.5;
     }
     
-    doc.text(addressText, textX, y, { align: 'right' });
-    y += 3.5;
     doc.text(`Tel: ${companyInfo.phone}`, textX, y, { align: 'right' });
     y += 3.5;
     doc.text(`Email: ${companyInfo.email}`, textX, y, { align: 'right' });

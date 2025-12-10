@@ -685,8 +685,18 @@ const App: React.FC = () => {
                             <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Información de Contacto</h4>
                             <div className="space-y-3">
                                 <div className="flex gap-3 items-start">
-                                    <MapPin size={18} className="text-brand-500 shrink-0"/>
-                                    <span className="text-sm text-slate-600">{companyInfo.addresses && companyInfo.addresses.length > 0 ? companyInfo.addresses[0].value : companyInfo.address}</span>
+                                    <MapPin size={18} className="text-brand-500 shrink-0 mt-1"/>
+                                    <div className="flex flex-col gap-1">
+                                        {companyInfo.addresses && companyInfo.addresses.length > 0 ? (
+                                            companyInfo.addresses.map((addr, idx) => (
+                                                <span key={idx} className="text-sm text-slate-600">
+                                                    <strong className="font-semibold text-slate-700">{addr.label}:</strong> {addr.value}
+                                                </span>
+                                            ))
+                                        ) : (
+                                            <span className="text-sm text-slate-600">{companyInfo.address}</span>
+                                        )}
+                                    </div>
                                 </div>
                                 <div className="flex gap-3 items-center">
                                     <Phone size={18} className="text-brand-500 shrink-0"/>
