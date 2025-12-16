@@ -11,6 +11,7 @@ export interface PricingOption {
   id: string;
   name: string | LocalizedText;
   price: number;
+  cost?: number; // Coste interno
 }
 
 export interface InstallKit {
@@ -32,21 +33,52 @@ export interface FinancingOption {
   coefficient?: number; // PDF based (e.g., 0.087)
 }
 
+export interface TechnicalSpecs {
+  powerCooling?: string;
+  powerHeating?: string;
+  efficiency?: string;
+  gasType?: string;
+  voltage?: string;
+  dimensions?: string;
+  warranty?: string;
+}
+
+export type ProductOrigin = 'global' | 'local';
+export type ProductStatus = 'active' | 'inactive' | 'draft';
+export type ProductCategory = 'Aire Acondicionado' | 'Caldera' | 'Termo Eléctrico' | 'Aerotermia';
+
 export interface Product {
   id: string;
+  origin?: ProductOrigin; // Nuevo
+  status?: ProductStatus; // Nuevo
+  reference?: string; // Nuevo
+  
   brand: string;
   model: string;
-  type: string;
+  type: string; // Se mantiene como string libre o Category
+  category?: ProductCategory;
+
+  description?: string | LocalizedText;
+  
+  // Inventory
+  stock?: number;
+  minStockAlert?: number;
+
+  // Technical Details
+  technical?: TechnicalSpecs;
   features: Feature[];
+
+  // Pricing & Config
   pricing: PricingOption[];
   installationKits: InstallKit[];
   extras: Extra[];
   financing: FinancingOption[];
+  
   rawContext?: string;
-  pdfUrl?: string; // Link to the original uploaded PDF
-  imageUrl?: string; // Product cover image
-  brandLogoUrl?: string; // Brand logo image
-  is_deleted?: boolean; // Soft delete flag
+  pdfUrl?: string; 
+  imageUrl?: string; 
+  brandLogoUrl?: string; 
+  is_deleted?: boolean; 
 }
 
 export interface ClientData {
@@ -57,7 +89,7 @@ export interface ClientData {
   direccion: string;
   poblacion: string;
   cp: string;
-  wo?: string; // Work Order (8 digits)
+  wo?: string; 
 }
 
 export interface ContactData {
@@ -79,7 +111,7 @@ export interface SavedQuote {
   pdfUrl: string;
   dniUrl?: string;
   incomeUrl?: string;
-  wo?: string; // Work Order
+  wo?: string; 
   is_deleted?: boolean; 
 }
 
@@ -107,7 +139,6 @@ export interface CompanyInfo {
   addresses?: CompanyAddress[]; 
   phone: string;
   email: string;
-  // New Branding Fields
   logoUrl?: string;
   brandName?: string; 
   companyDescription?: string | LocalizedText; 
@@ -117,7 +148,6 @@ export interface CompanyInfo {
   isoLinkUrl?: string; 
   logo2Url?: string; 
   logo2LinkUrl?: string; 
-  // Social Media
   facebookUrl?: string;
   instagramUrl?: string;
   twitterUrl?: string;
