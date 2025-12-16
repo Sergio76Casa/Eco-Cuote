@@ -1,0 +1,160 @@
+{
+  "nav": {
+    "home": "Accueil",
+    "products": "Produits",
+    "contact": "Contact",
+    "admin": "Administration"
+  },
+  "hero": {
+    "badge": "Technologie Inverter 2024",
+    "title_1": "Climat parfait,",
+    "title_2": "Économies réelles.",
+    "subtitle": "Transformez votre maison avec nos solutions CVC haute efficacité. Installation professionnelle, financement sur mesure et les meilleures marques.",
+    "cta_catalog": "Voir le catalogue",
+    "cta_budget": "Demander un devis"
+  },
+  "catalog": {
+    "title": "Catalogue en vedette",
+    "subtitle": "Trouvez l'équipement idéal pour votre maison.",
+    "filters": {
+      "type": "Type d'équipement",
+      "all_types": "Tous",
+      "brand": "Marque",
+      "all_brands": "Toutes les marques",
+      "max_price": "Prix maximum",
+      "clean": "Effacer les filtres"
+    },
+    "no_results": "Aucun résultat trouvé",
+    "no_results_desc": "Essayez d'ajuster vos filtres de recherche."
+  },
+  "footer": {
+    "brand_desc": "Experts en solutions CVC efficaces. Devis transparents, installation professionnelle et grandes marques.",
+    "services": "Services",
+    "legal": "Légal",
+    "contact": "Contact",
+    "rights": "Tous droits réservés."
+  },
+  "services": {
+    "installation": "Installation",
+    "maintenance": "Maintenance",
+    "repair": "Réparation",
+    "warranty": "Garantie"
+  },
+  "legal": {
+    "privacy": "Confidentialité",
+    "cookies": "Cookies",
+    "notice": "Mentions légales"
+  },
+  "calculator": {
+    "back_to_catalog": "Retour au catalogue",
+    "steps": {
+      "power_model": "Sélectionner Puissance / Modèle",
+      "installation": "Type d'installation",
+      "extras": "Extras d'installation",
+      "payment": "Options de paiement"
+    },
+    "payment": {
+      "cash": "Paiement comptant",
+      "total_pay": "Total à payer",
+      "month": "mois",
+      "fee": "Frais"
+    },
+    "summary": {
+      "title": "Résumé",
+      "model": "Modèle",
+      "installation": "Installation",
+      "extras_selected": "Extras sélectionnés",
+      "items": "articles",
+      "total_estimated": "Total estimé",
+      "taxes_included": "TVA et installation incluses",
+      "view_pdf": "Voir la fiche technique",
+      "save_button": "Enregistrer le devis",
+      "processing": "Traitement...",
+      "success_title": "Devis enregistré !",
+      "download_pdf": "Télécharger le PDF",
+      "no_image": "Pas d'image"
+    },
+    "form": {
+      "title": "Acceptation du Devis",
+      "review_title": "Détails de la commande",
+      "client_title": "Informations client",
+      "sign_title": "Signature de conformité",
+      "concept": "Concept",
+      "amount": "Montant",
+      "name": "Prénom",
+      "surname": "Nom",
+      "email": "Email",
+      "phone": "Téléphone",
+      "city": "Ville",
+      "zip": "Code postal",
+      "address": "Adresse complète",
+      "cancel": "Retour",
+      "submit": "Signer et Confirmer",
+      "legal_accept": "J'accepte le devis et les conditions de service.",
+      "financing_docs_title": "Documentation de financement",
+      "dni": "Carte d'identité / NIE (Recto-Verso)",
+      "income": "Justificatif de revenus (Fiche de paie/Pension)",
+      "is_technician": "Je suis Technicien / Installateur",
+      "wo_label": "Numéro de Work Order (8 chiffres)"
+    },
+    "error": {
+      "required_fields": "Requis",
+      "save_error": "Erreur lors de l'enregistrement",
+      "docs_required": "Le financement nécessite une pièce d'identité et un justificatif de revenus.",
+      "email_invalid": "Format d'email invalide.",
+      "phone_invalid": "Le téléphone doit comporter au moins 9 chiffres.",
+      "wo_invalid": "Le Work Order doit comporter exactement 8 chiffres.",
+      "cp_invalid": "Code postal invalide (5 chiffres)."
+    }
+  },
+  "info": {
+    "instalacion": {
+      "title": "Installation Professionnelle",
+      "text": "Notre équipe de techniciens certifiés RITE garantit une installation sûre, propre et efficace. Nous respectons toutes les réglementations en vigueur, garantissant des performances maximales de votre équipement dès le premier jour. Comprend les tests d'étanchéité, l'aspiration et la mise en service."
+    },
+    "mantenimiento": {
+      "title": "Maintenance Préventive",
+      "text": "Prolongez la durée de vie de votre équipement et maintenez l'efficacité énergétique grâce à nos plans d'entretien annuels. Comprend le nettoyage du filtre, la vérification du gaz réfrigérant, le nettoyage de l'échangeur de chaleur et la désinfection pour assurer un air sain."
+    },
+    "reparacion": {
+      "title": "Réparation et Pannes",
+      "text": "Service technique multimarque rapide et efficace. Nous diagnostiquons et réparons toute panne en un temps record. Nous avons un stock de pièces de rechange d'origine pour minimiser les temps d'arrêt de votre système CVC."
+    },
+    "garantias": {
+      "title": "Garantie Totale",
+      "text": "Nous offrons une garantie de 5 ans sur l'installation et gérons directement la garantie constructeur de votre équipement. Votre tranquillité d'esprit est notre priorité; en cas de problème, nous nous occupons de tout sans frais cachés."
+    },
+    "privacidad": {
+      "title": "Politique de Confidentialité",
+      "text": "Chez EcoQuote, nous prenons très au sérieux la protection de vos données. Nous respectons strictement le RGPD. Vos données personnelles ne sont utilisées que pour gérer votre devis et votre installation. Nous ne partagerons jamais vos informations avec des tiers sans votre consentement explicite."
+    },
+    "cookies": {
+      "title": "Politique de Cookies",
+      "text": "Nous utilisons nos propres cookies et ceux de tiers pour améliorer l'expérience de navigation et vous proposer un contenu personnalisé. Vous pouvez configurer ou refuser leur utilisation à tout moment depuis les options de votre navigateur."
+    },
+    "avisoLegal": {
+      "title": "Mentions Légales",
+      "text": "Informations générales pour se conformer à la loi 34/2002. Propriétaire : EcoQuote Climatización S.L., NIF : B12345678. Adresse : Calle Ejemplo 123, 28000 Madrid. Téléphone : +34 900 123 456. Courriel : info@ecoquote.com. Inscrit au Registre du Commerce de Madrid."
+    }
+  },
+  "validation": {
+    "name_required": "Le nom est requis",
+    "email_required": "L'email est requis",
+    "email_invalid": "Veuillez entrer un email valide",
+    "message_required": "Veuillez écrire votre demande",
+    "contact_success_title": "Message envoyé !",
+    "contact_success_desc": "Nous vous contacterons bientôt.",
+    "contact_error": "Erreur lors de l'envoi du message, veuillez réessayer.",
+    "sending": "Envoi...",
+    "send_button": "Envoyer le message",
+    "field_name": "Prénom",
+    "field_email": "Email",
+    "field_message": "Enquête",
+    "contact_title": "Contactez-nous"
+  },
+  "admin_login": {
+    "title": "Accès Administrateur",
+    "placeholder": "Mot de passe",
+    "enter": "Entrer"
+  }
+}

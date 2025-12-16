@@ -1,0 +1,174 @@
+
+export default {
+  "nav": {
+    "home": "Inici",
+    "products": "Productes",
+    "contact": "Contacte",
+    "admin": "Administració"
+  },
+  "hero": {
+    "badge": "Tecnologia Inverter 2024",
+    "title_1": "Clima perfecte,",
+    "title_2": "Estalvi real.",
+    "subtitle": "Transforma la teva llar amb les nostres solucions de climatització d'alta eficiència. Instal·lació professional, finançament a mida i les millors marques del mercat.",
+    "cta_catalog": "Veure Catàleg",
+    "cta_budget": "Demanar Pressupost"
+  },
+  "catalog": {
+    "title": "Catàleg Destacat",
+    "subtitle": "Troba l'equip ideal per a la teva llar.",
+    "filters": {
+      "type": "Tipus d'Equip",
+      "all_types": "Tots",
+      "brand": "Marca",
+      "all_brands": "Totes les marques",
+      "max_price": "Preu Màxim",
+      "clean": "Netejar filtres"
+    },
+    "no_results": "No s'han trobat resultats",
+    "no_results_desc": "Prova d'ajustar els filtres de cerca."
+  },
+  "product": {
+    "from": "Des de",
+    "share": "Compartir",
+    "datasheet": "Fitxa Tècnica PDF",
+    "view_specs": "Veure Característiques",
+    "more_features": "característiques més",
+    "configure": "Configurar Pressupost",
+    "share_title": "Compartir Producte",
+    "copy_link": "Copiar enllaç",
+    "link_copied": "Enllaç copiat!",
+    "specs_title": "Especificacions Tècniques",
+    "variants_title": "Variants Disponibles",
+    "base_price": "Preu base"
+  },
+  "footer": {
+    "brand_desc": "Experts en solucions de climatització eficient. Pressupostos transparents, instal·lació professional i les millors marques del mercat.",
+    "services": "Serveis",
+    "legal": "Legal",
+    "contact": "Contacte",
+    "rights": "Tots els drets reservats."
+  },
+  "services": {
+    "installation": "Instal·lació",
+    "maintenance": "Manteniment",
+    "repair": "Reparació",
+    "warranty": "Garanties"
+  },
+  "legal": {
+    "privacy": "Privacitat",
+    "cookies": "Cookies",
+    "notice": "Avís Legal"
+  },
+  "calculator": {
+    "back_to_catalog": "Tornar al catàleg",
+    "steps": {
+      "power_model": "Selecciona Potència / Model",
+      "installation": "Tipus d'Instal·lació",
+      "extras": "Extres d'Instal·lació",
+      "payment": "Opcions de Pagament"
+    },
+    "payment": {
+      "cash": "Pagament al Comptat",
+      "total_pay": "Total a pagar",
+      "month": "mes",
+      "fee": "Quota"
+    },
+    "summary": {
+      "title": "Resum",
+      "model": "Model",
+      "installation": "Instal·lació",
+      "extras_selected": "Extres seleccionats",
+      "items": "items",
+      "total_estimated": "Total Estimat",
+      "taxes_included": "IVA i instal·lació inclosos",
+      "view_pdf": "Veure Fitxa Tècnica Original",
+      "save_button": "Guardar Pressupost",
+      "processing": "Processant...",
+      "success_title": "Pressupost Guardat!",
+      "download_pdf": "Descarregar PDF",
+      "no_image": "Sense Imatge"
+    },
+    "form": {
+      "title": "Acceptació de Pressupost",
+      "review_title": "Detall de la Comanda",
+      "client_title": "Dades del Client",
+      "sign_title": "Firma de Conformitat",
+      "concept": "Concepte",
+      "amount": "Import",
+      "name": "Nom",
+      "surname": "Cognoms",
+      "email": "Email",
+      "phone": "Telèfon",
+      "city": "Població",
+      "zip": "CP",
+      "address": "Adreça Completa",
+      "cancel": "Tornar",
+      "submit": "Firmar i Confirmar Comanda",
+      "legal_accept": "Accepto el pressupost i les condicions de servei.",
+      "financing_docs_title": "Documentació per Finançament",
+      "dni": "Foto DNI / NIE (Ambdues cares)",
+      "income": "Justificant d'Ingressos (Nòmina/Pensió)",
+      "is_technician": "Sóc Tècnic / Instal·lador",
+      "wo_label": "Núm. Work Order (8 dígits)"
+    },
+    "error": {
+      "required_fields": "Si us plau completa els camps obligatoris (*)",
+      "save_error": "Error al guardar",
+      "docs_required": "Per finançar és obligatori adjuntar DNI i Justificant d'ingressos.",
+      "email_invalid": "El format de l'email no és vàlid.",
+      "phone_invalid": "El telèfon ha de tenir almenys 9 dígits.",
+      "wo_invalid": "La Work Order ha de tenir exactament 8 dígits."
+    }
+  },
+  "info": {
+    "instalacion": {
+      "title": "Instal·lació Professional",
+      "text": "El nostre equip de tècnics certificats RITE garanteix una instal·lació segura, neta i eficient. Complim amb totes les normatives vigents, assegurant el màxim rendiment del seu equip des del primer dia. Incluimos proves d'estanquitat, buit i posada en marxa."
+    },
+    "mantenimiento": {
+      "title": "Manteniment Preventiu",
+      "text": "Prolongui la vida útil del seu equip i mantingui l'eficiència energètica amb els nostres plans de manteniment anual. Inclou neteja de filtres, revisió de gas refrigerant, neteja d'intercanviadors i desinfecció per garantir un aire saludable."
+    },
+    "reparacion": {
+      "title": "Reparació i Avaries",
+      "text": "Servei tècnic multimarca ràpid i eficaç. Diagnostiquem i reparem qualsevol avaria en temps rècord. Disposem d'estoc de recanvis originals per minimitzar el temps d'inactividad del seu sistema de climatització."
+    },
+    "garantias": {
+      "title": "Garantia Total",
+      "text": "Oferim 5 anys de garantia en la instal·lació i gestionem directament la garantia del fabricant del seu equip. La seva tranquil·litat és la nostra prioritat; si sorgeix algun problema, nosaltres ens encarreguem de tot sense costos ocults."
+    },
+    "privacidad": {
+      "title": "Política de Privacitat",
+      "text": "A EcoQuote ens prenem molt seriosament la protecció de les seves dades. Complim estrictament amb el RGPD. Les seves dades personals només s'utilitzen per gestionar el seu pressupost i la instal·lació. Mai cedirem la seva informació a tercers sense el seu consentiment explícit."
+    },
+    "cookies": {
+      "title": "Política de Cookies",
+      "text": "Utilitzem cookies pròpies i de tercers per millorar l'experiència de navegació i oferir-li continguts personalitzats. Pot configurar o rebutjar el seu ús en qualsevol moment des de les opcions del seu navegador."
+    },
+    "avisoLegal": {
+      "title": "Avís Legal",
+      "text": "Informació general per donar compliment a la Llei 34/2002. Titular: EcoQuote Climatización S.L., NIF: B12345678. Domicili: Carrer Exemple 123, 28000 Madrid. Telèfon: +34 900 123 456. Email: info@ecoquote.com. Inscrita en el Registre Mercantil de Madrid."
+    }
+  },
+  "validation": {
+    "name_required": "El nom és obligatori",
+    "email_required": "L'email és obligatori",
+    "email_invalid": "Introdueix un email vàlid",
+    "message_required": "Si us plau, escriu la teva consulta",
+    "contact_success_title": "Missatge Enviat!",
+    "contact_success_desc": "Ens posarem en contacte amb tu aviat.",
+    "contact_error": "Error a l'enviar missatge, si us plau intenta-ho de nou.",
+    "sending": "Enviant...",
+    "send_button": "Enviar Missatge",
+    "field_name": "Nom",
+    "field_email": "Email",
+    "field_message": "Consulta",
+    "contact_title": "Contactar"
+  },
+  "admin_login": {
+    "title": "Accés Administrador",
+    "placeholder": "Contrasenya",
+    "enter": "Entrar"
+  }
+}
