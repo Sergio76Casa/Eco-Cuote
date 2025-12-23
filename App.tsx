@@ -51,13 +51,8 @@ const App: React.FC = () => {
   const [remoteStatus, setRemoteStatus] = useState<'idle' | 'loading' | 'success'>('idle');
   const remoteSigPad = useRef<SignatureCanvas>(null);
 
-  // EFECTO DE RESET DE SCROLL
   useEffect(() => {
-    // Forzamos el scroll a la parte superior de la ventana al cambiar de vista
-    // 'instant' asegura que no haya animación de deslizamiento, mejorando la UX en cambios de página
-    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
-
-    // Lógica existente de detección de firma remota
+    // Detectar si hay un presupuesto para firmar en la URL
     const urlParams = new URLSearchParams(window.location.search);
     const signId = urlParams.get('sign');
     if (signId) {
