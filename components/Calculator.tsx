@@ -4,7 +4,7 @@ import { Product, ClientData } from '../types';
 import { api } from '../services/api';
 import { 
   CheckCircle2, CreditCard, ChevronLeft, Save, 
-  Minus, Plus, ShieldCheck, Download, Loader2, FileText, PenTool, Eraser, Check, Upload, AlertCircle, Wrench, X, FileUp
+  Minus, Plus, ShieldCheck, Download, Loader2, FileText, PenTool, Eraser, Check, Upload, AlertCircle, Wrench, X, FileUp, ChevronDown, ChevronUp
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { getLangText } from '../i18nUtils';
@@ -42,6 +42,7 @@ const Calculator: React.FC<CalculatorProps> = ({ product, onBack }) => {
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [lastQuoteUrl, setLastQuoteUrl] = useState<string | null>(null);
   const [legalAccepted, setLegalAccepted] = useState(false);
+  const [mobileDetailsOpen, setMobileDetailsOpen] = useState(false);
   
   // Validation State (Per Field)
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -511,54 +512,78 @@ const Calculator: React.FC<CalculatorProps> = ({ product, onBack }) => {
                 ) : (
                     <>
                         {/* LEFT: BUDGET SUMMARY (The "Paper" View) */}
-                        <div className="w-full md:w-5/12 bg-slate-50 p-6 md:p-8 border-b md:border-b-0 md:border-r border-slate-200 overflow-y-auto custom-scrollbar shrink-0">
-                            <div className="mb-8">
-                                <h3 className="text-2xl font-black text-slate-900 mb-1">{t('calculator.form.title')}</h3>
-                                <p className="text-slate-500 text-sm">Revisa los detalles antes de firmar.</p>
+                        <div className="w-full md:w-5/12 bg-slate-50 border-b md:border-b-0 md:border-r border-slate-200 overflow-y-auto custom-scrollbar shrink-0">
+                            
+                            {/* Header / Accordion Toggle */}
+                            <div 
+                                className="p-6 md:p-8 flex justify-between items-start md:block cursor-pointer md:cursor-default"
+                                onClick={() => setMobileDetailsOpen(!mobileDetailsOpen)}
+                            >
+                                <div className="flex-1">
+                                    <h3 className="text-xl md:text-2xl font-black text-slate-900 mb-1">{t('calculator.form.title')}</h3>
+                                    <p className="text-slate-500 text-sm md:block hidden">Revisa los detalles antes de firmar.</p>
+                                    
+                                    {/* Mobile hint */}
+                                    <div className="md:hidden flex items-center gap-2 mt-1 text-brand-600 font-bold text-xs">
+                                        {mobileDetailsOpen ? 'Ocultar detalles' : 'Ver detalles del pedido'} 
+                                        {mobileDetailsOpen ? <ChevronUp size={14}/> : <ChevronDown size={14}/>}
+                                    </div>
+                                </div>
+                                {/* Total Badge on Mobile (When collapsed) */}
+                                {!mobileDetailsOpen && (
+                                    <div className="md:hidden bg-white border border-slate-200 px-3 py-1 rounded-lg shadow-sm">
+                                        <span className="font-black text-slate-900">{formatCurrency(total)}</span>
+                                    </div>
+                                )}
                             </div>
 
-                            <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm mb-6">
-                                <h4 className="font-bold text-slate-800 text-sm uppercase tracking-wider mb-4 border-b pb-2">{t('calculator.form.review_title')}</h4>
-                                <div className="space-y-4 text-sm">
-                                    <div className="flex justify-between items-start">
-                                        <div>
-                                            <div className="font-bold text-slate-900">{product.brand}</div>
-                                            <div className="text-slate-500">{getLangText(selectedModel.name, i18n.language)}</div>
-                                        </div>
-                                        <div className="font-mono font-bold text-slate-900">{formatCurrency(selectedModel.price)}</div>
-                                    </div>
-                                    <div className="flex justify-between items-start">
-                                        <div className="text-slate-600">{getLangText(selectedKit.name, i18n.language)}</div>
-                                        <div className="font-mono font-bold text-slate-900">{formatCurrency(selectedKit.price)}</div>
-                                    </div>
-                                    {Object.entries(extrasQty).map(([id, qty]) => {
-                                        const e = extrasData.find(x => x.id === id);
-                                        const quantity = qty as number;
-                                        return e ? (
-                                            <div key={id} className="flex justify-between items-start text-slate-600">
-                                                <div>{quantity > 1 ? `${getLangText(e.name, i18n.language)} (x${quantity})` : getLangText(e.name, i18n.language)}</div>
-                                                <div className="font-mono font-bold text-slate-900">{formatCurrency(e.price * quantity)}</div>
+                            {/* Collapsible Content */}
+                            <div className={`px-6 pb-6 md:px-8 md:pb-8 ${mobileDetailsOpen ? 'block' : 'hidden md:block'}`}>
+                                <p className="text-slate-500 text-sm mb-6 md:hidden">Revisa los detalles antes de firmar.</p>
+                                
+                                <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm mb-6">
+                                    <h4 className="font-bold text-slate-800 text-sm uppercase tracking-wider mb-4 border-b pb-2">{t('calculator.form.review_title')}</h4>
+                                    <div className="space-y-4 text-sm">
+                                        <div className="flex justify-between items-start">
+                                            <div>
+                                                <div className="font-bold text-slate-900">{product.brand}</div>
+                                                <div className="text-slate-500">{getLangText(selectedModel.name, i18n.language)}</div>
                                             </div>
-                                        ) : null;
-                                    })}
-                                </div>
-                                <div className="mt-6 pt-4 border-t border-dashed border-slate-200 flex justify-between items-end">
-                                    <span className="font-bold text-slate-900 text-lg">Total</span>
-                                    <span className="font-black text-3xl text-brand-600">{formatCurrency(total)}</span>
-                                </div>
-                                <div className="text-right text-[10px] text-slate-400 mt-1 uppercase font-bold tracking-wide">IVA Incluido</div>
-                            </div>
-
-                            {/* Financing Info Box */}
-                            {financeIdx >= 0 && financeData[financeIdx] && (
-                                <div className="bg-brand-50 p-4 rounded-xl border border-brand-100 mb-6">
-                                    <div className="flex gap-3 items-center mb-2">
-                                        <CreditCard className="text-brand-600" size={18}/>
-                                        <span className="font-bold text-brand-800 text-sm">Financiación Seleccionada</span>
+                                            <div className="font-mono font-bold text-slate-900">{formatCurrency(selectedModel.price)}</div>
+                                        </div>
+                                        <div className="flex justify-between items-start">
+                                            <div className="text-slate-600">{getLangText(selectedKit.name, i18n.language)}</div>
+                                            <div className="font-mono font-bold text-slate-900">{formatCurrency(selectedKit.price)}</div>
+                                        </div>
+                                        {Object.entries(extrasQty).map(([id, qty]) => {
+                                            const e = extrasData.find(x => x.id === id);
+                                            const quantity = qty as number;
+                                            return e ? (
+                                                <div key={id} className="flex justify-between items-start text-slate-600">
+                                                    <div>{quantity > 1 ? `${getLangText(e.name, i18n.language)} (x${quantity})` : getLangText(e.name, i18n.language)}</div>
+                                                    <div className="font-mono font-bold text-slate-900">{formatCurrency(e.price * quantity)}</div>
+                                                </div>
+                                            ) : null;
+                                        })}
                                     </div>
-                                    <p className="text-brand-900 text-sm font-medium">{getLangText(financeData[financeIdx].label, i18n.language)}</p>
+                                    <div className="mt-6 pt-4 border-t border-dashed border-slate-200 flex justify-between items-end">
+                                        <span className="font-bold text-slate-900 text-lg">Total</span>
+                                        <span className="font-black text-3xl text-brand-600">{formatCurrency(total)}</span>
+                                    </div>
+                                    <div className="text-right text-[10px] text-slate-400 mt-1 uppercase font-bold tracking-wide">IVA Incluido</div>
                                 </div>
-                            )}
+
+                                {/* Financing Info Box */}
+                                {financeIdx >= 0 && financeData[financeIdx] && (
+                                    <div className="bg-brand-50 p-4 rounded-xl border border-brand-100 mb-6">
+                                        <div className="flex gap-3 items-center mb-2">
+                                            <CreditCard className="text-brand-600" size={18}/>
+                                            <span className="font-bold text-brand-800 text-sm">Financiación Seleccionada</span>
+                                        </div>
+                                        <p className="text-brand-900 text-sm font-medium">{getLangText(financeData[financeIdx].label, i18n.language)}</p>
+                                    </div>
+                                )}
+                            </div>
                         </div>
 
                         {/* RIGHT: CLIENT FORM & SIGNATURE */}

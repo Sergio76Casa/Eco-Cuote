@@ -632,8 +632,8 @@ const App: React.FC = () => {
 
       {/* Admin Login Modal */}
       {showAdminLogin && (
-        <div className="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in">
-            <div className="bg-white p-8 rounded-3xl w-full max-w-sm shadow-2xl animate-in zoom-in-95">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in">
+            <div className="bg-white p-8 rounded-3xl w-full max-w-sm shadow-2xl animate-in zoom-in-95 border border-slate-100">
                 <div className="flex justify-end mb-2">
                     <button onClick={() => setShowAdminLogin(false)}><X className="text-slate-400 hover:text-slate-600"/></button>
                 </div>
@@ -645,7 +645,7 @@ const App: React.FC = () => {
                 <h3 className="text-center font-bold text-xl mb-6">{t('admin_login.title')}</h3>
                 <input 
                     type="password" 
-                    className={`w-full border-2 p-3 rounded-xl outline-none mb-4 transition-colors ${authError ? 'border-red-300 bg-red-50' : 'border-slate-200 focus:border-brand-500'}`}
+                    className={`w-full border-2 p-3 rounded-xl outline-none mb-4 transition-colors bg-white text-slate-900 ${authError ? 'border-red-300 bg-red-50' : 'border-slate-200 focus:border-brand-500'}`}
                     placeholder={t('admin_login.placeholder')}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
@@ -663,8 +663,8 @@ const App: React.FC = () => {
 
       {/* Contact Modal */}
       {showContact && (
-        <div className="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in">
-             <div className="bg-white p-8 rounded-3xl w-full max-w-md shadow-2xl animate-in zoom-in-95">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in">
+             <div className="bg-white p-8 rounded-3xl w-full max-w-md shadow-2xl animate-in zoom-in-95 border border-slate-100">
                 <div className="flex justify-between items-center mb-6">
                     <h3 className="font-bold text-2xl">{t('validation.contact_title')}</h3>
                     <button onClick={() => { setShowContact(false); setContactErrors({}); }}><X className="text-slate-400 hover:text-slate-600"/></button>
@@ -756,8 +756,8 @@ const App: React.FC = () => {
 
       {/* Info Modal (Services & Legal) */}
       {activeInfoKey && (
-        <div className="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in">
-             <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden animate-in zoom-in-95 flex flex-col max-h-[90vh]">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in">
+             <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden animate-in zoom-in-95 flex flex-col max-h-[90vh] border border-slate-100">
                 <div className="relative h-48 bg-slate-200 shrink-0">
                     <img src={INFO_IMAGES[activeInfoKey]} alt={t(`info.${activeInfoKey}.title`)} className="w-full h-full object-cover"/>
                     <button 

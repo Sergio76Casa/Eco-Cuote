@@ -1,5 +1,5 @@
 
-import { Product, SavedQuote, QuotePayload, ContactData, CompanyInfo, LocalizedText } from '../types';
+import { Product, SavedQuote, QuotePayload, ContactData, CompanyInfo, LocalizedText, CompanyAddress } from '../types';
 import { createClient } from '@supabase/supabase-js';
 import { jsPDF } from 'jspdf';
 import { GoogleGenAI } from "@google/genai";
@@ -160,7 +160,7 @@ class AppApi {
         const ai = new GoogleGenAI({ apiKey });
         
         // 3. Define Prompt
-        const prompt = `Eres un experto en climatización y traducción técnica. Analiza el PDF adjunto y extrae los datos técnicos y comerciales en formato JSON estrictamente válido.
+        const prompt = `Eres un experto en climatización y traducción técnica. Analiza el PDF adjunto y extrae los datos técnicos y comerciales en formato JSON estrictamente válido para una tienda online.
         
         IMPORTANTE: Para todos los campos de texto visibles al usuario (nombre, título, descripción, etiquetas), DEBES generar un objeto con traducciones en 4 idiomas: Español (es), Inglés (en), Catalán (ca) y Francés (fr).
 
@@ -168,18 +168,30 @@ class AppApi {
         {
             "brand": "Marca (Texto simple)", 
             "model": "Modelo (Texto simple)", 
+            "reference": "Referencia o SKU del fabricante",
             "type": "Tipo (Aire Acondicionado, Caldera, Termo Eléctrico)",
+            "description": { "es": "Resumen comercial...", "en": "...", "ca": "...", "fr": "..." },
+            "technical": {
+                "powerCooling": "ej: 3.5 kW",
+                "powerHeating": "ej: 4.0 kW",
+                "efficiency": "ej: A+++/A++",
+                "gasType": "ej: R32",
+                "voltage": "ej: 220V",
+                "warranty": "ej: 3 Años"
+            },
             "features": [
                 {
                     "title": { "es": "...", "en": "...", "ca": "...", "fr": "..." }, 
-                    "description": { "es": "...", "en": "...", "ca": "...", "fr": "..." }
+                    "description": { "es": "...", "en": "...", "ca": "...", "fr": "..." },
+                    "icon": "nombre icono sugerido en ingles (ej: wifi, zap, wind)"
                 }
             ],
             "pricing": [
                 {
                     "id": "p1", 
                     "name": { "es": "Modelo Base", "en": "Base Model", "ca": "Model Base", "fr": "Modèle de base" }, 
-                    "price": 0
+                    "price": 0,
+                    "cost": 0
                 }
             ],
             "installationKits": [
@@ -203,15 +215,14 @@ class AppApi {
                     "commission": 0, 
                     "coefficient": 0
                 }
-            ],
-            "rawContext": "Resumen breve en español de 1 linea"
+            ]
         }
 
         REGLAS:
         1. Precios (price, coefficient) deben ser NUMBER.
-        2. Si el PDF tiene tablas de financiación con coeficientes (ej: 0.087), úsalos.
-        3. Traduce los términos técnicos con precisión al contexto de climatización.
-        4. "type": Infiere si es Aire, Caldera o Termo.
+        2. "technical": Extrae datos técnicos clave como potencia, gas, eficiencia. Si no están, déjalos vacíos.
+        3. Si el PDF tiene tablas de financiación con coeficientes (ej: 0.087), úsalos.
+        4. "type": Infiere si es Aire Acondicionado, Aerotermia, Caldera o Termo.
         5. Devuelve SOLO el JSON válido, sin markdown.
         `;
 
@@ -591,7 +602,7 @@ class AppApi {
     
     // Addresses - Render ALL addresses if available
     if(companyInfo.addresses && companyInfo.addresses.length > 0) {
-        companyInfo.addresses.forEach(addr => {
+        companyInfo.addresses.forEach((addr: CompanyAddress) => {
             const label = addr.label ? `${addr.label}: ` : '';
             doc.text(`${label}${addr.value}`, textX, y, { align: 'right' });
             y += 3.5;
@@ -750,7 +761,7 @@ class AppApi {
     doc.setFont('helvetica', 'normal');
     
     if (data.extras && data.extras.length > 0) {
-        data.extras.forEach((ex) => {
+        data.extras.forEach((ex: string) => {
             const splitEx = doc.splitTextToSize(`• ${ex}`, 90);
             doc.text(splitEx, 100, y + 5);
             y += (splitEx.length * 4.5); // Tighter line spacing
@@ -800,7 +811,7 @@ class AppApi {
     doc.setTextColor(51, 65, 85);
     
     let finY = bottomY + 11;
-    lines.forEach((line) => {
+    lines.forEach((line: string) => {
         doc.text(line, 20, finY);
         finY += 4;
     });
