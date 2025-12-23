@@ -1,5 +1,5 @@
 
-export type LocalizedText = Record<string, string>;
+export type LocalizedText = Record<string, string>; // { es: "Hola", en: "Hello" }
 
 export interface Feature {
   title: string | LocalizedText;
@@ -11,7 +11,7 @@ export interface PricingOption {
   id: string;
   name: string | LocalizedText;
   price: number;
-  cost?: number;
+  cost?: number; // Coste interno
 }
 
 export interface InstallKit {
@@ -29,8 +29,8 @@ export interface Extra {
 export interface FinancingOption {
   label: string | LocalizedText;
   months: number;
-  commission?: number;
-  coefficient?: number;
+  commission?: number; // Legacy percentage based
+  coefficient?: number; // PDF based (e.g., 0.087)
 }
 
 export interface TechnicalSpecs {
@@ -49,22 +49,31 @@ export type ProductCategory = 'Aire Acondicionado' | 'Caldera' | 'Termo Eléctri
 
 export interface Product {
   id: string;
-  origin?: ProductOrigin;
-  status?: ProductStatus;
-  reference?: string;
+  origin?: ProductOrigin; // Nuevo
+  status?: ProductStatus; // Nuevo
+  reference?: string; // Nuevo
+  
   brand: string;
   model: string;
-  type: string;
+  type: string; // Se mantiene como string libre o Category
   category?: ProductCategory;
+
   description?: string | LocalizedText;
+  
+  // Inventory
   stock?: number;
   minStockAlert?: number;
+
+  // Technical Details
   technical?: TechnicalSpecs;
   features: Feature[];
+
+  // Pricing & Config
   pricing: PricingOption[];
   installationKits: InstallKit[];
   extras: Extra[];
   financing: FinancingOption[];
+  
   rawContext?: string;
   pdfUrl?: string; 
   imageUrl?: string; 
@@ -103,8 +112,6 @@ export interface SavedQuote {
   dniUrl?: string;
   incomeUrl?: string;
   wo?: string; 
-  status?: 'pending' | 'signed'; // Nuevo
-  signature_url?: string; // Nuevo
   is_deleted?: boolean; 
 }
 
@@ -119,7 +126,6 @@ export interface QuotePayload {
   signature?: string; 
   dniUrl?: string; 
   incomeUrl?: string; 
-  status?: 'pending' | 'signed'; // Nuevo
 }
 
 export interface CompanyAddress {

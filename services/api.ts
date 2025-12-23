@@ -1,5 +1,5 @@
 
-import { Product, SavedQuote, QuotePayload, ContactData, CompanyInfo, LocalizedText, CompanyAddress } from '../types';
+import { Product, SavedQuote, QuotePayload, ContactData, CompanyInfo, LocalizedText } from '../types';
 import { createClient } from '@supabase/supabase-js';
 import { jsPDF } from 'jspdf';
 import { GoogleGenAI } from "@google/genai";
@@ -602,7 +602,7 @@ class AppApi {
     
     // Addresses - Render ALL addresses if available
     if(companyInfo.addresses && companyInfo.addresses.length > 0) {
-        companyInfo.addresses.forEach((addr: CompanyAddress) => {
+        companyInfo.addresses.forEach(addr => {
             const label = addr.label ? `${addr.label}: ` : '';
             doc.text(`${label}${addr.value}`, textX, y, { align: 'right' });
             y += 3.5;
@@ -761,7 +761,7 @@ class AppApi {
     doc.setFont('helvetica', 'normal');
     
     if (data.extras && data.extras.length > 0) {
-        data.extras.forEach((ex: string) => {
+        data.extras.forEach((ex) => {
             const splitEx = doc.splitTextToSize(`• ${ex}`, 90);
             doc.text(splitEx, 100, y + 5);
             y += (splitEx.length * 4.5); // Tighter line spacing
@@ -811,7 +811,7 @@ class AppApi {
     doc.setTextColor(51, 65, 85);
     
     let finY = bottomY + 11;
-    lines.forEach((line: string) => {
+    lines.forEach((line) => {
         doc.text(line, 20, finY);
         finY += 4;
     });
