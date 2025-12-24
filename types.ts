@@ -43,19 +43,17 @@ export interface TechnicalSpecs {
   warranty?: string;
 }
 
-export type ProductOrigin = 'global' | 'local';
 export type ProductStatus = 'active' | 'inactive' | 'draft';
 export type ProductCategory = 'Aire Acondicionado' | 'Caldera' | 'Termo Eléctrico' | 'Aerotermia';
 
 export interface Product {
   id: string;
-  origin?: ProductOrigin; // Nuevo
-  status?: ProductStatus; // Nuevo
-  reference?: string; // Nuevo
+  status?: ProductStatus;
+  reference?: string;
   
   brand: string;
   model: string;
-  type: string; // Se mantiene como string libre o Category
+  type: string; 
   category?: ProductCategory;
 
   description?: string | LocalizedText;
