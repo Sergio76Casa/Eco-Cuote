@@ -7,9 +7,8 @@ import Calculator from './components/Calculator';
 import Admin from './components/Admin';
 import LanguageSelector from './components/LanguageSelector';
 import { useTranslation } from 'react-i18next';
-import { Settings, Lock, Mail, Phone, MapPin, Facebook, Instagram, Twitter, X, Send, Loader2, ArrowDown, SlidersHorizontal, ShieldCheck, Wrench, FileText, Cookie, Menu, Scale, Hammer, ClipboardCheck, Linkedin, User, UserCheck } from 'lucide-react';
+import { Settings, Lock, Mail, Phone, MapPin, Facebook, Instagram, Twitter, X, Send, Loader2, ArrowDown, SlidersHorizontal, ShieldCheck, Wrench, FileText, Cookie, Menu, Scale, Hammer, ClipboardCheck, Linkedin } from 'lucide-react';
 import { getLangText } from './i18nUtils';
-import { Session } from '@supabase/supabase-js';
 
 // Content for the informational modal (Only Images are hardcoded now, text comes from locales)
 const INFO_IMAGES: Record<string, string> = {
@@ -38,13 +37,10 @@ const App: React.FC = () => {
   const [filterPrice, setFilterPrice] = useState<number>(3000);
   const [maxPriceAvailable, setMaxPriceAvailable] = useState<number>(3000);
 
-  // Admin Auth Secure
-  const [session, setSession] = useState<Session | null>(null);
+  // Admin Auth
   const [showAdminLogin, setShowAdminLogin] = useState(false);
-  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [authLoading, setAuthLoading] = useState(false);
-  const [authError, setAuthError] = useState<string | null>(null);
+  const [authError, setAuthError] = useState(false);
 
   // Contact Modal
   const [showContact, setShowContact] = useState(false);
@@ -55,26 +51,6 @@ const App: React.FC = () => {
   // Info Modal (Services & Legal) - Stores KEY of active info
   const [activeInfoKey, setActiveInfoKey] = useState<string | null>(null);
   const [companyInfo, setCompanyInfo] = useState<CompanyInfo>({ address: '', phone: '', email: '' });
-
-  useEffect(() => {
-    // Check current session on mount
-    api.getSession().then(setSession);
-    
-    // Listen for auth changes
-    const subscription = api.onAuthStateChange((newSession) => {
-        setSession(newSession);
-        if (newSession && view === 'home' && showAdminLogin) {
-            setView('admin');
-            setShowAdminLogin(false);
-        } else if (!newSession && view === 'admin') {
-            setView('home');
-        }
-    });
-
-    return () => {
-        subscription.unsubscribe();
-    };
-  }, [view, showAdminLogin]);
 
   useEffect(() => {
     if (view === 'home') {
@@ -134,6 +110,8 @@ const App: React.FC = () => {
     setSelectedProduct(p);
     setView('calculator');
     setMobileMenuOpen(false);
+    // Asegurar que la vista comience desde arriba al cambiar de pantalla
+    window.scrollTo({ top: 0, behavior: 'instant' });
   };
 
   const handleBack = () => {
@@ -142,19 +120,15 @@ const App: React.FC = () => {
   };
 
   const handleAdminLogin = async () => {
-    setAuthLoading(true);
-    setAuthError(null);
-    try {
-        await api.signIn(email, password);
-        setView('admin');
-        setShowAdminLogin(false);
-        setEmail('');
-        setPassword('');
-        setMobileMenuOpen(false);
-    } catch (err: any) {
-        setAuthError(err.message || "Credenciales incorrectas o acceso denegado.");
-    } finally {
-        setAuthLoading(false);
+    const res = await api.verifyPassword(password);
+    if (res.success) {
+      setView('admin');
+      setShowAdminLogin(false);
+      setPassword('');
+      setAuthError(false);
+      setMobileMenuOpen(false);
+    } else {
+      setAuthError(true);
     }
   };
 
@@ -213,10 +187,7 @@ const App: React.FC = () => {
   };
 
   if (view === 'admin') {
-    return <Admin onLogout={async () => {
-        await api.signOut();
-        setView('home');
-    }} />;
+    return <Admin onLogout={() => setView('home')} />;
   }
 
   return (
@@ -282,22 +253,13 @@ const App: React.FC = () => {
                 
                 <LanguageSelector />
 
-                {session ? (
-                    <button 
-                        onClick={() => setView('admin')}
-                        className="flex items-center gap-2 px-3 py-2 bg-brand-50 text-brand-700 rounded-xl font-bold hover:bg-brand-100 transition-all"
-                    >
-                        <UserCheck size={18}/> Panel Admin
-                    </button>
-                ) : (
-                    <button 
-                        onClick={() => setShowAdminLogin(true)}
-                        className="p-2.5 text-slate-400 hover:text-brand-600 hover:bg-brand-50 rounded-xl transition-all"
-                        title={t('nav.admin')}
-                    >
-                        <Settings size={20} />
-                    </button>
-                )}
+                <button 
+                    onClick={() => setShowAdminLogin(true)}
+                    className="p-2.5 text-slate-400 hover:text-brand-600 hover:bg-brand-50 rounded-xl transition-all"
+                    title={t('nav.admin')}
+                >
+                    <Settings size={20} />
+                </button>
             </nav>
 
             {/* Mobile Hamburger Button */}
@@ -346,27 +308,15 @@ const App: React.FC = () => {
                          <LanguageSelector />
                     </div>
                     <div className="h-px bg-slate-100 my-2"></div>
-                    {session ? (
-                        <button 
-                            onClick={() => {
-                                setView('admin');
-                                setMobileMenuOpen(false);
-                            }}
-                            className="text-left font-bold text-lg text-brand-600 p-3 hover:bg-brand-50 rounded-xl flex items-center gap-2"
-                        >
-                            <UserCheck size={20}/> Panel Admin
-                        </button>
-                    ) : (
-                        <button 
-                            onClick={() => {
-                                setShowAdminLogin(true);
-                                setMobileMenuOpen(false);
-                            }}
-                            className="text-left font-bold text-lg text-brand-600 p-3 hover:bg-brand-50 rounded-xl flex items-center gap-2"
-                        >
-                            <Settings size={20}/> {t('nav.admin')}
-                        </button>
-                    )}
+                    <button 
+                        onClick={() => {
+                            setShowAdminLogin(true);
+                            setMobileMenuOpen(false);
+                        }}
+                        className="text-left font-bold text-lg text-brand-600 p-3 hover:bg-brand-50 rounded-xl flex items-center gap-2"
+                    >
+                        <Settings size={20}/> {t('nav.admin')}
+                    </button>
                 </div>
             )}
         </div>
@@ -682,7 +632,7 @@ const App: React.FC = () => {
         </div>
       </footer>
 
-      {/* Admin Login Modal Secured */}
+      {/* Admin Login Modal */}
       {showAdminLogin && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in">
             <div className="bg-white p-8 rounded-3xl w-full max-w-sm shadow-2xl animate-in zoom-in-95 border border-slate-100">
@@ -695,37 +645,19 @@ const App: React.FC = () => {
                     </div>
                 </div>
                 <h3 className="text-center font-bold text-xl mb-6">{t('admin_login.title')}</h3>
-                <div className="space-y-4">
-                    <div>
-                        <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Email</label>
-                        <input 
-                            type="email" 
-                            className="w-full border-2 border-slate-200 p-3 rounded-xl outline-none focus:border-brand-500 bg-white text-slate-900"
-                            placeholder="admin@ejemplo.com"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Contraseña</label>
-                        <input 
-                            type="password" 
-                            className="w-full border-2 border-slate-200 p-3 rounded-xl outline-none focus:border-brand-500 bg-white text-slate-900"
-                            placeholder="••••••••"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            onKeyDown={(e) => e.key === 'Enter' && handleAdminLogin()}
-                        />
-                    </div>
-                </div>
-                {authError && <p className="text-red-500 text-xs font-bold mt-4 text-center">{authError}</p>}
+                <input 
+                    type="password" 
+                    className={`w-full border-2 p-3 rounded-xl outline-none mb-4 transition-colors bg-white text-slate-900 ${authError ? 'border-red-300 bg-red-50' : 'border-slate-200 focus:border-brand-500'}`}
+                    placeholder={t('admin_login.placeholder')}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleAdminLogin()}
+                />
                 <button 
                     onClick={handleAdminLogin}
-                    disabled={authLoading}
-                    className="w-full bg-brand-600 hover:bg-brand-500 text-white font-bold py-3 rounded-xl transition-colors mt-6 flex items-center justify-center gap-2 disabled:opacity-70"
+                    className="w-full bg-brand-600 hover:bg-brand-500 text-white font-bold py-3 rounded-xl transition-colors mb-3"
                 >
-                    {authLoading ? <Loader2 className="animate-spin" size={18}/> : <Lock size={18}/>}
-                    {authLoading ? 'Iniciando sesión...' : t('admin_login.enter')}
+                    {t('admin_login.enter')}
                 </button>
             </div>
         </div>
