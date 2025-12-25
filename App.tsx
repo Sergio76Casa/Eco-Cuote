@@ -152,7 +152,8 @@ const App: React.FC = () => {
         const { data, error } = await api.signIn(email, password);
         
         if (error) {
-            setAuthError("Credenciales incorrectas.");
+            // Error controlado de Supabase Auth
+            setAuthError(error.message || "Credenciales incorrectas.");
             setIsLoggingIn(false);
             return;
         }
@@ -170,8 +171,10 @@ const App: React.FC = () => {
                 setAuthError("Acceso denegado. No eres administrador.");
             }
         }
-    } catch (err) {
-        setAuthError("Error de conexión con el servidor.");
+    } catch (err: any) {
+        // Error de red, CORS o excepción inesperada - Mostramos error real para diagnóstico
+        console.error("Login Exception:", err);
+        setAuthError(err?.message || "Error de conexión con el servidor.");
     } finally {
         setIsLoggingIn(false);
     }
