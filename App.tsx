@@ -7,7 +7,8 @@ import Calculator from './components/Calculator';
 import Admin from './components/Admin';
 import LanguageSelector from './components/LanguageSelector';
 import { useTranslation } from 'react-i18next';
-import { Settings, Lock, Mail, Phone, MapPin, Facebook, Instagram, Twitter, X, Send, Loader2, ArrowDown, SlidersHorizontal, ShieldCheck, Wrench, FileText, Cookie, Menu, Scale, Hammer, ClipboardCheck, Linkedin } from 'lucide-react';
+// Added AlertCircle to imports
+import { Settings, Lock, Mail, Phone, MapPin, Facebook, Instagram, Twitter, X, Send, Loader2, ArrowDown, SlidersHorizontal, ShieldCheck, Wrench, FileText, Cookie, Menu, Scale, Hammer, ClipboardCheck, Linkedin, User, AlertCircle } from 'lucide-react';
 import { getLangText } from './i18nUtils';
 
 // Content for the informational modal (Only Images are hardcoded now, text comes from locales)
@@ -39,8 +40,10 @@ const App: React.FC = () => {
 
   // Admin Auth
   const [showAdminLogin, setShowAdminLogin] = useState(false);
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [authError, setAuthError] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   // Contact Modal
   const [showContact, setShowContact] = useState(false);
@@ -51,6 +54,23 @@ const App: React.FC = () => {
   // Info Modal (Services & Legal) - Stores KEY of active info
   const [activeInfoKey, setActiveInfoKey] = useState<string | null>(null);
   const [companyInfo, setCompanyInfo] = useState<CompanyInfo>({ address: '', phone: '', email: '' });
+
+  // Session recovery on mount
+  useEffect(() => {
+    const checkSession = async () => {
+        const { data: { session } } = await api.getSession();
+        if (session?.user?.email) {
+            const isAuthorized = await api.isAuthorizedAdmin(session.user.email);
+            if (isAuthorized) {
+                setView('admin');
+            } else {
+                await api.signOut();
+                setView('home');
+            }
+        }
+    };
+    checkSession();
+  }, []);
 
   useEffect(() => {
     if (view === 'home') {
@@ -120,16 +140,46 @@ const App: React.FC = () => {
   };
 
   const handleAdminLogin = async () => {
-    const res = await api.verifyPassword(password);
-    if (res.success) {
-      setView('admin');
-      setShowAdminLogin(false);
-      setPassword('');
-      setAuthError(false);
-      setMobileMenuOpen(false);
-    } else {
-      setAuthError(true);
+    if (!email || !password) {
+        setAuthError("Email y contraseña obligatorios.");
+        return;
     }
+    
+    setIsLoggingIn(true);
+    setAuthError(null);
+    
+    try {
+        const { data, error } = await api.signIn(email, password);
+        
+        if (error) {
+            setAuthError("Credenciales incorrectas.");
+            setIsLoggingIn(false);
+            return;
+        }
+
+        if (data.user?.email) {
+            const isAuthorized = await api.isAuthorizedAdmin(data.user.email);
+            if (isAuthorized) {
+                setView('admin');
+                setShowAdminLogin(false);
+                setEmail('');
+                setPassword('');
+                setMobileMenuOpen(false);
+            } else {
+                await api.signOut();
+                setAuthError("Acceso denegado. No eres administrador.");
+            }
+        }
+    } catch (err) {
+        setAuthError("Error de conexión con el servidor.");
+    } finally {
+        setIsLoggingIn(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    await api.signOut();
+    setView('home');
   };
 
   const validateContactForm = () => {
@@ -187,7 +237,7 @@ const App: React.FC = () => {
   };
 
   if (view === 'admin') {
-    return <Admin onLogout={() => setView('home')} />;
+    return <Admin onLogout={handleLogout} />;
   }
 
   return (
@@ -637,7 +687,7 @@ const App: React.FC = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in">
             <div className="bg-white p-8 rounded-3xl w-full max-w-sm shadow-2xl animate-in zoom-in-95 border border-slate-100">
                 <div className="flex justify-end mb-2">
-                    <button onClick={() => setShowAdminLogin(false)}><X className="text-slate-400 hover:text-slate-600"/></button>
+                    <button onClick={() => { setShowAdminLogin(false); setAuthError(null); }}><X className="text-slate-400 hover:text-slate-600"/></button>
                 </div>
                 <div className="flex justify-center mb-6">
                     <div className="bg-slate-100 p-4 rounded-full">
@@ -645,20 +695,44 @@ const App: React.FC = () => {
                     </div>
                 </div>
                 <h3 className="text-center font-bold text-xl mb-6">{t('admin_login.title')}</h3>
-                <input 
-                    type="password" 
-                    className={`w-full border-2 p-3 rounded-xl outline-none mb-4 transition-colors bg-white text-slate-900 ${authError ? 'border-red-300 bg-red-50' : 'border-slate-200 focus:border-brand-500'}`}
-                    placeholder={t('admin_login.placeholder')}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleAdminLogin()}
-                />
-                <button 
-                    onClick={handleAdminLogin}
-                    className="w-full bg-brand-600 hover:bg-brand-500 text-white font-bold py-3 rounded-xl transition-colors mb-3"
-                >
-                    {t('admin_login.enter')}
-                </button>
+                
+                {authError && (
+                    <div className="mb-4 p-3 bg-red-50 border border-red-100 text-red-600 text-xs font-bold rounded-xl flex items-center gap-2 animate-in slide-in-from-top-2">
+                        <AlertCircle size={14}/> {authError}
+                    </div>
+                )}
+
+                <div className="space-y-4">
+                    <div className="relative">
+                        <User className="absolute left-3 top-3 text-slate-400" size={18}/>
+                        <input 
+                            type="email" 
+                            className="w-full border-2 p-3 pl-10 rounded-xl outline-none transition-colors bg-white text-slate-900 border-slate-200 focus:border-brand-500"
+                            placeholder="Email de administrador"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                        />
+                    </div>
+                    <div className="relative">
+                        <Lock className="absolute left-3 top-3 text-slate-400" size={18}/>
+                        <input 
+                            type="password" 
+                            className="w-full border-2 p-3 pl-10 rounded-xl outline-none transition-colors bg-white text-slate-900 border-slate-200 focus:border-brand-500"
+                            placeholder={t('admin_login.placeholder')}
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && handleAdminLogin()}
+                        />
+                    </div>
+                    <button 
+                        onClick={handleAdminLogin}
+                        disabled={isLoggingIn}
+                        className="w-full bg-brand-600 hover:bg-brand-500 text-white font-bold py-3 rounded-xl transition-colors flex items-center justify-center gap-2 disabled:opacity-70"
+                    >
+                        {isLoggingIn ? <Loader2 className="animate-spin" size={18}/> : <Lock size={18}/>}
+                        {t('admin_login.enter')}
+                    </button>
+                </div>
             </div>
         </div>
       )}
