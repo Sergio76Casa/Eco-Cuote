@@ -1,6 +1,5 @@
 
 export type ProductStatus = 'active' | 'inactive' | 'draft';
-export type ProductOrigin = 'global' | 'local';
 
 export interface LocalizedText {
   es: string;
@@ -22,7 +21,6 @@ export interface Product {
   brandLogoUrl?: string;
   pdfUrl?: string;
   status?: ProductStatus;
-  origin?: ProductOrigin;
   stock?: number;
   minStockAlert?: number;
   features: Array<{
