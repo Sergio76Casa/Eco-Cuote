@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { api } from './services/api';
+import { api as hvacApi } from './services/api';
 import { Product, ContactData, CompanyInfo } from './types';
 import ProductCard from './components/ProductCard';
 import Calculator from './components/Calculator';
@@ -58,13 +58,13 @@ const App: React.FC = () => {
   // Session recovery on mount
   useEffect(() => {
     const checkSession = async () => {
-        const { data: { session } } = await api.getSession();
+        const { data: { session } } = await hvacApi.getSession();
         if (session?.user?.email) {
-            const isAuthorized = await api.isAuthorizedAdmin(session.user.email);
+            const isAuthorized = await hvacApi.isAuthorizedAdmin(session.user.email);
             if (isAuthorized) {
                 setView('admin');
             } else {
-                await api.signOut();
+                await hvacApi.signOut();
                 setView('home');
             }
         }
@@ -80,13 +80,13 @@ const App: React.FC = () => {
 
   // Load company info
   useEffect(() => {
-    api.getCompanyInfo().then(info => setCompanyInfo(info));
+    hvacApi.getCompanyInfo().then(info => setCompanyInfo(info));
   }, []);
 
   const loadCatalog = async () => {
     setLoading(true);
     try {
-      const data = await api.getCatalog();
+      const data = await hvacApi.getCatalog();
       setProducts(data);
       
       // Calculate max price for the slider
@@ -148,8 +148,12 @@ const App: React.FC = () => {
     setIsLoggingIn(true);
     setAuthError(null);
     
+    // TEMPORARY DIAGNOSTIC LOGS
+    console.log('typeof hvacApi', typeof hvacApi, hvacApi);
+    console.log('keys hvacApi', Object.keys(hvacApi || {}));
+
     try {
-        const { data, error } = await api.signIn(email, password);
+        const { data, error } = await hvacApi.signIn(email, password);
         
         if (error) {
             // Error controlado de Supabase Auth
@@ -159,7 +163,7 @@ const App: React.FC = () => {
         }
 
         if (data.user?.email) {
-            const isAuthorized = await api.isAuthorizedAdmin(data.user.email);
+            const isAuthorized = await hvacApi.isAuthorizedAdmin(data.user.email);
             if (isAuthorized) {
                 setView('admin');
                 setShowAdminLogin(false);
@@ -167,7 +171,7 @@ const App: React.FC = () => {
                 setPassword('');
                 setMobileMenuOpen(false);
             } else {
-                await api.signOut();
+                await hvacApi.signOut();
                 setAuthError("Acceso denegado. No eres administrador.");
             }
         }
@@ -181,7 +185,7 @@ const App: React.FC = () => {
   };
 
   const handleLogout = async () => {
-    await api.signOut();
+    await hvacApi.signOut();
     setView('home');
   };
 
@@ -221,7 +225,7 @@ const App: React.FC = () => {
 
     setContactStatus('sending');
     try {
-        await api.sendContact(contactForm);
+        await hvacApi.sendContact(contactForm);
         setContactStatus('success');
         setTimeout(() => {
             setShowContact(false);
