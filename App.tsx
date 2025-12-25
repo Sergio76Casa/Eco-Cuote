@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import hvacService from './services/api';
+import { api as hvacService } from './services/api';
 import { Product, ContactData, CompanyInfo } from './types';
 import ProductCard from './components/ProductCard';
 import Calculator from './components/Calculator';
