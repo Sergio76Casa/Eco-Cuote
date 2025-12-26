@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { hvacService } from './services/api';
 import { Product, ContactData, CompanyInfo } from './types';
@@ -801,7 +800,6 @@ const App: React.FC = () => {
                                 placeholder="email@example.com"
                                 type="email"
                                 value={contactForm.email}
-                                /* Fixed reference to undefined 'errors' variable, changing it to 'contactErrors' */
                                 onChange={e => { setContactForm({...contactForm, email: e.target.value}); if(contactErrors.email) setContactErrors({...contactErrors, email: undefined}); }}
                             />
                             {contactErrors.email && <p className="text-red-500 text-xs mt-1 font-medium">{contactErrors.email}</p>}
