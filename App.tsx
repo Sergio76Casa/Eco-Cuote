@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
-import hvacService from './services/api';
+import { hvacService } from './services/api';
 import { Product, ContactData, CompanyInfo } from './types';
 import ProductCard from './components/ProductCard';
 import Calculator from './components/Calculator';
@@ -182,8 +183,7 @@ const App: React.FC = () => {
   };
 
   const validateContactForm = () => {
-    const errors: Partial<ContactData> = {};
-    let isValid = true;
+    const errors: Partial<ContactData> = {};    let isValid = true;
 
     if (!contactForm.nombre.trim()) {
         errors.nombre = t('validation.name_required');
@@ -801,6 +801,7 @@ const App: React.FC = () => {
                                 placeholder="email@example.com"
                                 type="email"
                                 value={contactForm.email}
+                                /* Fixed reference to undefined 'errors' variable, changing it to 'contactErrors' */
                                 onChange={e => { setContactForm({...contactForm, email: e.target.value}); if(contactErrors.email) setContactErrors({...contactErrors, email: undefined}); }}
                             />
                             {contactErrors.email && <p className="text-red-500 text-xs mt-1 font-medium">{contactErrors.email}</p>}
