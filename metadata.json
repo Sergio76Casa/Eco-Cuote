@@ -1,5 +1,5 @@
 {
   "name": "EcoQuote Climatización",
-  "description": "Professional HVAC quoting application with PDF generation and Catalog management via Google Apps Script.",
+  "description": "Professional HVAC quoting application with PDF generation and Catalog management.",
   "requestFramePermissions": []
 }

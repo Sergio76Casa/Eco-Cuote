@@ -1,57 +1,84 @@
 
-export type ProductStatus = 'active' | 'inactive' | 'draft';
+export type LocalizedText = Record<string, string>; // { es: "Hola", en: "Hello" }
 
-export interface LocalizedText {
-  es: string;
-  en?: string;
-  ca?: string;
-  fr?: string;
-  [key: string]: string | undefined;
+export interface Feature {
+  title: string | LocalizedText;
+  description: string | LocalizedText;
+  icon?: string;
 }
+
+export interface PricingOption {
+  id: string;
+  name: string | LocalizedText;
+  price: number;
+  cost?: number; // Coste interno
+}
+
+export interface InstallKit {
+  id: string;
+  name: string | LocalizedText;
+  price: number;
+}
+
+export interface Extra {
+  id: string;
+  name: string | LocalizedText;
+  price: number;
+}
+
+export interface FinancingOption {
+  label: string | LocalizedText;
+  months: number;
+  commission?: number; // Legacy percentage based
+  coefficient?: number; // PDF based (e.g., 0.087)
+}
+
+export interface TechnicalSpecs {
+  powerCooling?: string;
+  powerHeating?: string;
+  efficiency?: string;
+  gasType?: string;
+  voltage?: string;
+  dimensions?: string;
+  warranty?: string;
+}
+
+export type ProductOrigin = 'global' | 'local';
+export type ProductStatus = 'active' | 'inactive' | 'draft';
+export type ProductCategory = 'Aire Acondicionado' | 'Caldera' | 'Termo Eléctrico' | 'Aerotermia';
 
 export interface Product {
   id: string;
+  origin?: ProductOrigin; // Nuevo
+  status?: ProductStatus; // Nuevo
+  reference?: string; // Nuevo
+  
   brand: string;
   model: string;
-  type: string;
-  category?: string;
-  reference?: string;
+  type: string; // Se mantiene como string libre o Category
+  category?: ProductCategory;
+
   description?: string | LocalizedText;
-  imageUrl?: string;
-  brandLogoUrl?: string;
-  pdfUrl?: string;
-  status?: ProductStatus;
+  
+  // Inventory
   stock?: number;
   minStockAlert?: number;
-  features: Array<{
-    title: string | LocalizedText;
-    description: string | LocalizedText;
-  }>;
-  pricing: Array<{
-    id: string;
-    name: string | LocalizedText;
-    price: number;
-    cost?: number;
-  }>;
-  installationKits: Array<{
-    id: string;
-    name: string | LocalizedText;
-    price: number;
-  }>;
-  extras: Array<{
-    id: string;
-    name: string | LocalizedText;
-    price: number;
-  }>;
-  financing: Array<{
-    label: string | LocalizedText;
-    months: number;
-    commission?: number;
-    coefficient?: number;
-  }>;
-  technical?: Record<string, string>;
+
+  // Technical Details
+  technical?: TechnicalSpecs;
+  features: Feature[];
+
+  // Pricing & Config
+  pricing: PricingOption[];
+  installationKits: InstallKit[];
+  extras: Extra[];
+  financing: FinancingOption[];
+  
   rawContext?: string;
-  is_deleted?: boolean;
+  pdfUrl?: string; 
+  imageUrl?: string; 
+  brandLogoUrl?: string; 
+  is_deleted?: boolean; 
 }
 
 export interface ClientData {
@@ -62,20 +89,13 @@ export interface ClientData {
   direccion: string;
   poblacion: string;
   cp: string;
-  wo?: string;
+  wo?: string; 
 }
 
-export interface QuotePayload {
-  brand: string;
-  model: string;
-  price: number;
-  extras: string[];
-  financing: string;
-  client: ClientData;
-  sendEmail: boolean;
-  signature?: string;
-  dniUrl?: string;
-  incomeUrl?: string;
+export interface ContactData {
+  nombre: string;
+  email: string;
+  mensaje: string;
 }
 
 export interface SavedQuote {
@@ -86,41 +106,48 @@ export interface SavedQuote {
   brand: string;
   model: string;
   price: number;
-  financing: string;
+  financing: string; 
   emailSent: boolean;
   pdfUrl: string;
   dniUrl?: string;
   incomeUrl?: string;
-  wo?: string;
-  is_deleted?: boolean;
+  wo?: string; 
+  is_deleted?: boolean; 
 }
 
-export interface ContactData {
-  nombre: string;
-  email: string;
-  mensaje: string;
+export interface QuotePayload {
+  brand: string;
+  model: string;
+  price: number;
+  extras: string[];
+  financing: string;
+  client: ClientData;
+  sendEmail: boolean;
+  signature?: string; 
+  dniUrl?: string; 
+  incomeUrl?: string; 
 }
 
 export interface CompanyAddress {
-  label: string;
-  value: string;
+  label: string; 
+  value: string; 
 }
 
 export interface CompanyInfo {
   id?: string;
-  address: string;
+  address: string; 
+  addresses?: CompanyAddress[]; 
   phone: string;
   email: string;
-  brandName?: string;
-  showLogo?: boolean;
   logoUrl?: string;
-  companyDescription?: string | LocalizedText;
-  partnerLogoUrl?: string;
-  isoLogoUrl?: string;
-  isoLinkUrl?: string;
-  logo2Url?: string;
-  logo2LinkUrl?: string;
-  addresses?: CompanyAddress[];
+  brandName?: string; 
+  companyDescription?: string | LocalizedText; 
+  showLogo?: boolean; 
+  partnerLogoUrl?: string; 
+  isoLogoUrl?: string; 
+  isoLinkUrl?: string; 
+  logo2Url?: string; 
+  logo2LinkUrl?: string; 
   facebookUrl?: string;
   instagramUrl?: string;
   twitterUrl?: string;
