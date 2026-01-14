@@ -9,7 +9,7 @@ export default {
   "hero": {
     "badge": "Tecnología Inverter 2024",
     "title_1": "Clima perfecto,",
-    "title_2": "Ahorro real (Version 2).",
+    "title_2": "Ahorro real.",
     "subtitle": "Transforma tu hogar con nuestras soluciones de climatización de alta eficiencia. Instalación profesional, financiación a medida y las mejores marcas del mercado.",
     "cta_catalog": "Ver Catálogo",
     "cta_budget": "Pedir Presupuesto"
